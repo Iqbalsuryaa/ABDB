@@ -2,30 +2,18 @@ import subprocess
 import sys
 
 # Fungsi untuk memastikan pustaka terinstal
-def install_and_import(package_name, import_name=None):
-    if import_name is None:
-        import_name = package_name
+def install_and_import(package_name):
     try:
-        __import__(import_name)
+        __import__(package_name)
     except ImportError:
         print(f"Menginstal pustaka {package_name}...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
         print(f"Pustaka {package_name} berhasil diinstal.")
-    finally:
-        globals()[import_name] = __import__(import_name)
 
-# Pastikan pustaka yang dibutuhkan terinstal
-packages = [
-    {"package_name": "streamlit"},
-    {"package_name": "pandas"},
-    {"package_name": "seaborn"},
-    {"package_name": "matplotlib"},
-    {"package_name": "openpyxl"},
-    {"package_name": "scikit-learn", "import_name": "sklearn"}
-]
-
-for pkg in packages:
-    install_and_import(**pkg)
+# Instal pustaka yang diperlukan
+required_packages = ["streamlit", "pandas", "seaborn", "matplotlib", "openpyxl", "scikit-learn"]
+for package in required_packages:
+    install_and_import(package)
 
 # Import pustaka
 import streamlit as st
