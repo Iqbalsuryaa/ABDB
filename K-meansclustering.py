@@ -6,19 +6,19 @@ def install_and_import(package):
     try:
         __import__(package)
     except ImportError:
-        print(f"Menginstal pustaka {package}...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        print(f"Pustaka {package} berhasil diinstal.")
+        try:
+            print(f"Menginstal pustaka {package}...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+            print(f"Pustaka {package} berhasil diinstal.")
+        except Exception as e:
+            print(f"Error saat menginstal pustaka {package}: {e}")
     finally:
         globals()[package] = __import__(package)
 
 # Pastikan pustaka yang dibutuhkan terinstal
-install_and_import("streamlit")
-install_and_import("pandas")
-install_and_import("seaborn")
-install_and_import("matplotlib")
-install_and_import("openpyxl")
-install_and_import("scikit-learn")
+packages = ["streamlit", "pandas", "seaborn", "matplotlib", "openpyxl", "scikit-learn"]
+for package in packages:
+    install_and_import(package)
 
 # Import pustaka
 import streamlit as st
@@ -42,12 +42,15 @@ if uploaded_file:
     st.write("### Dataframe")
     st.dataframe(df.head())
     
-    # Basic Info
+    # Informasi Dataset
     st.write("### Informasi Dataset")
     st.write(f"Dimensi dataset: {df.shape}")
-    st.write(df.info())
+    buffer = []
+    df.info(buf=buffer)
+    info_str = "\n".join(buffer)
+    st.text(info_str)
 
-    # Missing Values
+    # Analisis Missing Values
     st.write("### Missing Value Analysis")
     missing = df.isnull().sum()
     st.write("Jumlah Missing Value per Kolom:")
@@ -55,14 +58,14 @@ if uploaded_file:
     st.write("Persentase Missing Value:")
     st.bar_chart(missing / len(df) * 100)
     
-    # Outliers
+    # Deteksi Outliers
     st.write("### Deteksi Outliers dengan Boxplot")
     numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
     fig, ax = plt.subplots(figsize=(8, 4))
     sns.boxplot(data=df[numeric_cols], ax=ax)
     st.pyplot(fig)
 
-    # Correlation Matrix
+    # Matriks Korelasi
     st.write("### Matriks Korelasi")
     df_num = df.select_dtypes(exclude=["object"])
     corr = df_num.corr()
@@ -74,11 +77,11 @@ if uploaded_file:
     st.write("### Clustering dengan K-Means")
     n_clusters = st.sidebar.slider("Jumlah Cluster", min_value=2, max_value=10, value=3)
     
-    # Preprocessing
+    # Preprocessing Data
     scaler = StandardScaler()
     df_scaled = scaler.fit_transform(df_num.dropna())
     
-    # Elbow Method
+    # Metode Elbow
     st.write("#### Metode Elbow")
     wcss = []
     range_clusters = range(1, 11)
@@ -118,7 +121,7 @@ if uploaded_file:
     ax.set_title("Distribusi Jumlah Data dalam Cluster")
     st.pyplot(fig)
 
-    # Evaluasi
+    # Evaluasi Model
     silhouette = silhouette_score(df_scaled, kmeans.labels_)
     davies_bouldin = davies_bouldin_score(df_scaled, kmeans.labels_)
     st.write(f"Silhouette Score: {silhouette:.2f}")
