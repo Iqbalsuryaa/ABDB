@@ -1,3 +1,26 @@
+import subprocess
+import sys
+
+# Fungsi untuk memastikan pustaka terinstal
+def install_and_import(package):
+    try:
+        __import__(package)
+    except ImportError:
+        print(f"Menginstal pustaka {package}...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        print(f"Pustaka {package} berhasil diinstal.")
+    finally:
+        globals()[package] = __import__(package)
+
+# Pastikan pustaka yang dibutuhkan terinstal
+install_and_import("streamlit")
+install_and_import("pandas")
+install_and_import("seaborn")
+install_and_import("matplotlib")
+install_and_import("openpyxl")
+install_and_import("scikit-learn")
+
+# Import pustaka
 import streamlit as st
 import pandas as pd
 import seaborn as sns
@@ -75,8 +98,24 @@ if uploaded_file:
     kmeans = KMeans(n_clusters=n_clusters, random_state=42).fit(df_scaled)
     df["Cluster"] = kmeans.labels_
     
+    # Pairplot Berdasarkan Cluster
     st.write("#### Pairplot Berdasarkan Cluster")
     fig = sns.pairplot(data=df, hue="Cluster", palette="tab10")
+    st.pyplot(fig)
+
+    # Heatmap untuk Cluster Result
+    st.write("#### Heatmap untuk Cluster Result")
+    cluster_means = df.groupby("Cluster").mean()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.heatmap(cluster_means, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
+    ax.set_title("Rata-Rata Fitur dalam Setiap Cluster")
+    st.pyplot(fig)
+
+    # Visualisasi Distribusi Cluster
+    st.write("#### Distribusi Cluster")
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.countplot(x="Cluster", data=df, ax=ax, palette="tab10")
+    ax.set_title("Distribusi Jumlah Data dalam Cluster")
     st.pyplot(fig)
 
     # Evaluasi
