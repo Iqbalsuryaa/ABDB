@@ -2,90 +2,72 @@ import streamlit as st
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.cluster import KMeans
-from sklearn.metrics import davies_bouldin_score, silhouette_score
-import numpy as np
-
-# Fungsi untuk memuat dataset
-@st.cache
-def load_data(file_path):
-    df = pd.read_excel(file_path)
-    return df
-
-# Fungsi Winsorization
-def winsorize(df, cols, limits):
-    for col in cols:
-        q1, q3 = df[col].dropna().quantile([0.25, 0.75])
-        iqr = q3 - q1
-        lower_bound = q1 - limits * iqr
-        upper_bound = q3 + limits * iqr
-        df[col] = np.clip(df[col], lower_bound, upper_bound)
-    return df
+from sklearn.preprocessing import StandardScaler
+import joblib
 
 # Load dataset
-st.title("Analisis Data Curah Hujan dengan K-Means Clustering")
-uploaded_file = st.file_uploader("Upload file Excel:", type=["xlsx"])
+st.title("K-Means Clustering untuk Dataset Curah Hujan")
+uploaded_file = st.file_uploader("Upload Dataset (.xlsx)", type="xlsx")
 
 if uploaded_file:
-    df = load_data(uploaded_file)
-
-    # Tampilkan data awal
-    st.subheader("Data Awal")
+    df = pd.read_excel(uploaded_file)
+    st.write("Data Awal:")
     st.dataframe(df.head())
 
-    # Informasi dataset
-    st.subheader("Informasi Dataset")
-    st.write(df.info())
+    # Exploratory Data Analysis
+    st.subheader("Analisis Missing Value")
+    missing_values = df.isnull().sum()
+    st.write(missing_values)
 
-    # Statistik deskriptif
-    st.subheader("Statistik Deskriptif")
-    st.write(df.describe())
+    # Plot Missing Values
+    if not df.isnull().values.all():
+        sns.set(rc={"figure.figsize": (8, 4)})
+        column_with_nan = df.columns[df.isnull().any()]
+        percent_nan = [round(df[col].isnull().sum() * 100 / len(df), 2) for col in column_with_nan]
+        tab = pd.DataFrame({"Column": column_with_nan, "Percent_NaN": percent_nan})
+        p = sns.barplot(x="Percent_NaN", y="Column", data=tab, edgecolor="black", color="deepskyblue")
+        p.set_title("Persentasi Missing Value per Kolom\n", fontsize=15)
+        p.set_xlabel("\nPersentase Missing Value")
+        plt.tight_layout()
+        st.pyplot(plt)
 
-    # Visualisasi missing value
-    st.subheader("Visualisasi Missing Value")
-    missing = df.isnull().mean() * 100
-    fig, ax = plt.subplots()
-    missing.plot(kind='barh', ax=ax, color='skyblue', edgecolor='black')
-    ax.set_title("Missing Value (%)")
-    st.pyplot(fig)
+    # Data Cleaning
+    st.subheader("Data Cleaning")
+    df_clean = df.dropna(axis=0)
+    st.write("Data setelah menghapus missing values:")
+    st.dataframe(df_clean.head())
 
-    # Winsorize data
-    st.subheader("Winsorization")
-    num_cols = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car']
-    df_winsorized = winsorize(df.copy(), num_cols, 1.5)
-
-    # Visualisasi sebelum dan sesudah Winsorization
-    fig, axs = plt.subplots(1, 2, figsize=(12, 6))
-    sns.boxplot(data=df[num_cols], ax=axs[0])
-    axs[0].set_title("Sebelum Winsorization")
-    sns.boxplot(data=df_winsorized[num_cols], ax=axs[1])
-    axs[1].set_title("Sesudah Winsorization")
-    st.pyplot(fig)
-
-    # Clustering dengan K-means
-    st.subheader("K-Means Clustering")
+    # Scaling Features
+    num_features = df_clean.select_dtypes(include=["float64", "int64"]).columns
     scaler = StandardScaler()
-    df_scaled = scaler.fit_transform(df_winsorized[num_cols])
+    df_clean[num_features] = scaler.fit_transform(df_clean[num_features])
+    st.write("Data setelah Scaling:")
+    st.dataframe(df_clean.head())
 
-    kmeans = KMeans(n_clusters=3, random_state=42)
-    df['cluster'] = kmeans.fit_predict(df_scaled)
+    # K-Means Clustering
+    st.subheader("Clustering dengan K-Means")
+    n_clusters = st.slider("Pilih Jumlah Cluster", min_value=2, max_value=10, value=3)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    df_clean['Cluster'] = kmeans.fit_predict(df_clean[num_features])
 
-    # Visualisasi kluster
-    st.write("Hasil Clustering")
-    fig = sns.pairplot(data=df, vars=num_cols[:3], hue='cluster', palette='tab10')
-    st.pyplot(fig)
+    st.write("Hasil Clustering:")
+    st.dataframe(df_clean.head())
 
-    # Evaluasi K-means
-    dbi = davies_bouldin_score(df_scaled, df['cluster'])
-    sil_score = silhouette_score(df_scaled, df['cluster'])
-    st.write(f"Davies-Bouldin Index: {dbi:.4f}")
-    st.write(f"Silhouette Score: {sil_score:.4f}")
+    # Plot Pairplot
+    st.subheader("Visualisasi Clustering")
+    sns.pairplot(df_clean, hue="Cluster", diag_kind="kde", palette="tab10")
+    st.pyplot(plt)
 
-    # Statistik tiap kluster
-    st.subheader("Statistik Tiap Kluster")
-    st.write(
-        df.groupby('cluster')[num_cols]
-        .agg(['mean', 'std', 'min', 'median', 'max'])
-        .transpose()
-    )
+    # Save Model
+    st.subheader("Simpan Model")
+    if st.button("Simpan Model"):
+        joblib.dump(kmeans, "kmeans_model.pkl")
+        st.success("Model berhasil disimpan sebagai kmeans_model.pkl!")
+
+    # Load Model
+    st.subheader("Load Model yang Sudah Ada")
+    model_file = st.file_uploader("Upload Model (.pkl)", type="pkl")
+    if model_file:
+        loaded_model = joblib.load(model_file)
+        st.success("Model berhasil dimuat!")
