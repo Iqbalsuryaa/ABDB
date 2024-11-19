@@ -1,85 +1,53 @@
 import streamlit as st
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
-import joblib
-import os
+import matplotlib.pyplot as plt
 
-# Judul Aplikasi
-st.title("K-Means Clustering untuk Dataset Curah Hujan")
+# Load dataset
+st.title("Clustering Curah Hujan dengan K-Means")
+uploaded_file = st.file_uploader("Upload file dataset (.csv atau .xlsx)", type=["csv", "xlsx"])
 
-# Upload Dataset
-uploaded_file = st.file_uploader("Upload Dataset (.xlsx)", type="xlsx")
-if uploaded_file:
-    # Membaca Dataset
-    @st.cache_data
-    def load_data(file):
-        return pd.read_excel(file)
+if uploaded_file is not None:
+    if uploaded_file.name.endswith('.csv'):
+        data = pd.read_csv(uploaded_file)
+    else:
+        data = pd.read_excel(uploaded_file)
 
-    df = load_data(uploaded_file)
-    st.write("Data Awal:")
-    st.dataframe(df.head())
+    st.write("Dataset:")
+    st.dataframe(data)
 
-    # Analisis Missing Value
-    st.subheader("Analisis Missing Value")
-    missing_values = df.isnull().sum()
-    st.write(missing_values)
+    # Pilih fitur untuk clustering
+    features = st.multiselect("Pilih fitur untuk clustering:", options=data.columns)
+    
+    if len(features) > 0:
+        # Scaling data
+        scaler = StandardScaler()
+        scaled_data = scaler.fit_transform(data[features])
 
-    # Plot Missing Values (jika ada)
-    if df.isnull().values.any():
-        sns.set(rc={"figure.figsize": (8, 4)})
-        column_with_nan = df.columns[df.isnull().any()]
-        percent_nan = [round(df[col].isnull().sum() * 100 / len(df), 2) for col in column_with_nan]
-        tab = pd.DataFrame({"Column": column_with_nan, "Percent_NaN": percent_nan})
-        p = sns.barplot(x="Percent_NaN", y="Column", data=tab, edgecolor="black", color="deepskyblue")
-        p.set_title("Persentasi Missing Value per Kolom\n", fontsize=15)
-        p.set_xlabel("\nPersentase Missing Value")
-        plt.tight_layout()
-        st.pyplot(plt)
-        plt.clf()
+        # Tentukan jumlah cluster
+        n_clusters = st.slider("Jumlah Cluster (k):", min_value=2, max_value=10, value=3)
 
-    # Data Cleaning
-    st.subheader("Data Cleaning")
-    df_clean = df.dropna(axis=0).reset_index(drop=True)
-    st.write("Data setelah menghapus missing values:")
-    st.dataframe(df_clean.head())
+        # Model K-Means
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        labels = kmeans.fit_predict(scaled_data)
 
-    # Scaling Features
-    st.subheader("Scaling Data")
-    num_features = df_clean.select_dtypes(include=["float64", "int64"]).columns
-    scaler = StandardScaler()
-    df_scaled = df_clean.copy()
-    df_scaled[num_features] = scaler.fit_transform(df_clean[num_features])
-    st.write("Data setelah Scaling:")
-    st.dataframe(df_scaled.head())
+        # Tambahkan hasil cluster ke dataset
+        data["Cluster"] = labels
+        st.write("Dataset dengan Cluster:")
+        st.dataframe(data)
 
-    # K-Means Clustering
-    st.subheader("Clustering dengan K-Means")
-    n_clusters = st.slider("Pilih Jumlah Cluster", min_value=2, max_value=10, value=3)
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-    df_scaled['Cluster'] = kmeans.fit_predict(df_scaled[num_features])
+        # Visualisasi cluster
+        if len(features) == 2:  # Jika hanya dua fitur
+            fig, ax = plt.subplots()
+            scatter = ax.scatter(data[features[0]], data[features[1]], c=labels, cmap='viridis')
+            ax.set_xlabel(features[0])
+            ax.set_ylabel(features[1])
+            plt.colorbar(scatter, ax=ax, label='Cluster')
+            st.pyplot(fig)
+        else:
+            st.write("Visualisasi hanya didukung untuk dua fitur.")
 
-    st.write("Hasil Clustering:")
-    st.dataframe(df_scaled.head())
-
-    # Plot Pairplot
-    st.subheader("Visualisasi Clustering")
-    sns.pairplot(df_scaled, hue="Cluster", diag_kind="kde", palette="tab10")
-    st.pyplot(plt)
-    plt.clf()
-
-    # Save Model
-    st.subheader("Simpan Model")
-    if st.button("Simpan Model"):
-        model_path = "kmeans_model.pkl"
-        joblib.dump(kmeans, model_path)
-        st.success(f"Model berhasil disimpan sebagai `{model_path}`!")
-
-    # Load Model
-    st.subheader("Load Model yang Sudah Ada")
-    model_file = st.file_uploader("Upload Model (.pkl)", type="pkl")
-    if model_file:
-        loaded_model = joblib.load(model_file)
-        st.success("Model berhasil dimuat!")
+        # Menampilkan centroids
+        st.write("Centroids:")
+        st.dataframe(pd.DataFrame(kmeans.cluster_centers_, columns=features))
