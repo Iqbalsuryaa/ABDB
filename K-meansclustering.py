@@ -1,8 +1,8 @@
 import streamlit as st
 import sklearn
-import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load dataset
