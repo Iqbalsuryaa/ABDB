@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import streamlit as st
-import os
 
 # Streamlit setup
 st.title("K-Means Clustering dengan Dataset Cuaca")
@@ -16,11 +15,11 @@ uploaded_file = st.file_uploader("Upload file CSV Anda", type="csv")
 
 # Periksa apakah file diupload
 if uploaded_file is not None:
-    # Baca dataset
     try:
+        # Membaca dataset
         data = pd.read_csv(uploaded_file)
         st.write("Dataset berhasil diupload!")
-        
+
         # Menampilkan deskripsi fitur data
         st.subheader("Deskripsi Fitur Dataset")
         deskripsi_fitur = {
@@ -72,4 +71,28 @@ if uploaded_file is not None:
         # Clustering menggunakan K-Means
         st.subheader("Hasil Clustering")
         kmeans = KMeans(n_clusters=3, random_state=42)
-        data['Cluster'] = kmeans
+        data['Cluster'] = kmeans.fit_predict(data_scaled)  # Perbaikan di sini
+        st.write("Rata-rata nilai tiap cluster:")
+        st.write(data.groupby('Cluster').mean())
+
+        # Visualisasi cluster
+        st.subheader("Visualisasi Cluster")
+        plt.figure(figsize=(8, 6))
+        sns.scatterplot(
+            x=data['Tavg'], y=data['RH_avg'], hue=data['Cluster'], palette='viridis'
+        )
+        plt.title('Visualisasi Cluster')
+        plt.xlabel('Temperatur Rata-rata (°C)')
+        plt.ylabel('Kelembaban Rata-rata (%)')
+        plt.legend(title='Cluster')
+        st.pyplot(plt)
+
+        # Menampilkan hasil per cluster
+        for cluster in sorted(data['Cluster'].unique()):
+            st.subheader(f"Cluster {cluster}")
+            st.write(data[data['Cluster'] == cluster])
+
+    except Exception as e:
+        st.error(f"Terjadi kesalahan saat membaca dataset: {e}")
+else:
+    st.info("Silakan upload file CSV untuk memulai analisis.")
