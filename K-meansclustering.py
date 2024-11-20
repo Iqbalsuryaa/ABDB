@@ -3,13 +3,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
-from sklearn.metrics import davies_bouldin_score, silhouette_score
 import streamlit as st
 import numpy as np
 import folium
 from folium.plugins import HeatMap
 
-# Upload file CSV atau Excel
+# Upload file CSV or Excel
 uploaded_file = st.file_uploader("Pilih file CSV atau Excel", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
