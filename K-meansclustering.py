@@ -5,78 +5,71 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+import streamlit as st
+import os
 
-# Load dataset
-# Ganti 'dataset.csv' dengan path dataset Anda
-data = pd.read_csv('dataset.csv')
+# Streamlit setup
+st.title("K-Means Clustering dengan Dataset Cuaca")
 
-# Menampilkan deskripsi fitur data
-print("Deskripsi Fitur Dataset:")
-deskripsi_fitur = {
-    "Tn": "Temperatur Minimum (°C)",
-    "Tx": "Temperatur Maksimum (°C)",
-    "Tavg": "Temperatur Rata-rata (°C)",
-    "RH_avg": "Kelembaban Rata-rata (%)",
-    "RR": "Curah Hujan (mm)",
-    "ss": "Lamanya Penyinaran Matahari (jam)",
-    "ff_x": "Kecepatan Angin Maksimum (m/s)",
-    "ddd_x": "Arah Angin Saat Kecepatan Maksimum",
-    "ff_avg": "Kecepatan Angin Rata-rata (m/s)",
-    "ddd_car": "Arah Angin Terbanyak"
-}
-for fitur, deskripsi in deskripsi_fitur.items():
-    print(f"{fitur}: {deskripsi}")
+# File uploader
+uploaded_file = st.file_uploader("Upload file CSV Anda", type="csv")
 
-# Menampilkan 5 data pertama
-print("\nDataset:")
-print(data.head())
+# Periksa apakah file diupload
+if uploaded_file is not None:
+    # Baca dataset
+    try:
+        data = pd.read_csv(uploaded_file)
+        st.write("Dataset berhasil diupload!")
+        
+        # Menampilkan deskripsi fitur data
+        st.subheader("Deskripsi Fitur Dataset")
+        deskripsi_fitur = {
+            "Tn": "Temperatur Minimum (°C)",
+            "Tx": "Temperatur Maksimum (°C)",
+            "Tavg": "Temperatur Rata-rata (°C)",
+            "RH_avg": "Kelembaban Rata-rata (%)",
+            "RR": "Curah Hujan (mm)",
+            "ss": "Lamanya Penyinaran Matahari (jam)",
+            "ff_x": "Kecepatan Angin Maksimum (m/s)",
+            "ddd_x": "Arah Angin Saat Kecepatan Maksimum",
+            "ff_avg": "Kecepatan Angin Rata-rata (m/s)",
+            "ddd_car": "Arah Angin Terbanyak"
+        }
+        for fitur, deskripsi in deskripsi_fitur.items():
+            st.write(f"{fitur}: {deskripsi}")
 
-# Heatmap korelasi
-plt.figure(figsize=(10, 8))
-sns.heatmap(data.corr(), annot=True, fmt='.2f', cmap='coolwarm')
-plt.title('Heatmap Korelasi Antar Fitur')
-plt.show()
+        # Menampilkan dataset
+        st.subheader("Lima Baris Pertama Dataset")
+        st.write(data.head())
 
-# Standarisasi data
-scaler = StandardScaler()
-data_scaled = scaler.fit_transform(data.select_dtypes(include=[np.number]))
+        # Heatmap korelasi
+        st.subheader("Heatmap Korelasi Antar Fitur")
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(data.corr(), annot=True, fmt='.2f', cmap='coolwarm')
+        st.pyplot(plt)
 
-# Menentukan jumlah cluster dengan metode Elbow
-inertia = []
-K = range(1, 11)
-for k in K:
-    kmeans = KMeans(n_clusters=k, random_state=42)
-    kmeans.fit(data_scaled)
-    inertia.append(kmeans.inertia_)
+        # Standarisasi data
+        scaler = StandardScaler()
+        data_scaled = scaler.fit_transform(data.select_dtypes(include=[np.number]))
 
-# Plot Elbow
-plt.figure(figsize=(8, 5))
-plt.plot(K, inertia, 'bx-')
-plt.xlabel('Jumlah Cluster')
-plt.ylabel('Inertia')
-plt.title('Metode Elbow untuk Menentukan Cluster Optimal')
-plt.show()
+        # Menentukan jumlah cluster dengan metode Elbow
+        st.subheader("Metode Elbow untuk Menentukan Cluster Optimal")
+        inertia = []
+        K = range(1, 11)
+        for k in K:
+            kmeans = KMeans(n_clusters=k, random_state=42)
+            kmeans.fit(data_scaled)
+            inertia.append(kmeans.inertia_)
 
-# Clustering menggunakan K-Means (jumlah cluster = 3 sebagai contoh)
-kmeans = KMeans(n_clusters=3, random_state=42)
-data['Cluster'] = kmeans.fit_predict(data_scaled)
+        # Plot Elbow
+        plt.figure(figsize=(8, 5))
+        plt.plot(K, inertia, 'bx-')
+        plt.xlabel('Jumlah Cluster')
+        plt.ylabel('Inertia')
+        plt.title('Metode Elbow')
+        st.pyplot(plt)
 
-# Menampilkan hasil cluster
-print("\nHasil Cluster:")
-print(data.groupby('Cluster').mean())
-
-# Visualisasi cluster
-plt.figure(figsize=(8, 6))
-sns.scatterplot(
-    x=data['Tavg'], y=data['RH_avg'], hue=data['Cluster'], palette='viridis'
-)
-plt.title('Visualisasi Cluster')
-plt.xlabel('Temperatur Rata-rata (°C)')
-plt.ylabel('Kelembaban Rata-rata (%)')
-plt.legend(title='Cluster')
-plt.show()
-
-# Menampilkan hasil per cluster
-for cluster in sorted(data['Cluster'].unique()):
-    print(f"\nCluster {cluster}:")
-    print(data[data['Cluster'] == cluster])
+        # Clustering menggunakan K-Means
+        st.subheader("Hasil Clustering")
+        kmeans = KMeans(n_clusters=3, random_state=42)
+        data['Cluster'] = kmeans
