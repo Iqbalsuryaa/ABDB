@@ -183,47 +183,36 @@ if uploaded_file is not None:
         kmeans.fit(cleaned_kota)
         wcss.append(kmeans.inertia_)
 
+    # Elbow method plot
     plt.figure(figsize=(8, 6))
-    plt.plot(range_n_clusters, wcss, marker='*', markersize=10, markerfacecolor='red')
-    plt.title('Elbow Method of K-Means')
-    plt.xlabel('Number of Clusters')
-    plt.ylabel('WCSS')
+    plt.plot(range_n_clusters, wcss, marker='o', linestyle='-', color='b')
+    plt.title('Elbow Method for Optimal k')
+    plt.xlabel('Jumlah Klaster')
+    plt.ylabel('Within-cluster Sum of Squares (WCSS)')
     st.pyplot()
 
-    # KMeans clustering
-    kmeans = KMeans(n_clusters=3, random_state=42)
-    kmeans_labels = kmeans.fit_predict(cleaned_kota)
-    df_kota_scaled['Cluster'] = kmeans_labels
+    # Train KMeans with the optimal number of clusters
+    optimal_clusters = 3  # Based on Elbow Method
+    kmeans = KMeans(n_clusters=optimal_clusters, random_state=42)
+    df_kota_scaled['Cluster'] = kmeans.fit_predict(cleaned_kota)
 
-    # Evaluation
-    kmeans_dbi = davies_bouldin_score(cleaned_kota, kmeans_labels)
-    kmeans_sil = silhouette_score(cleaned_kota, kmeans_labels)
+    # Display clustered data
+    st.write("Data dengan Hasil Klastering:")
+    st.dataframe(df_kota_scaled.head())
 
-    st.write(f"K-Means Clustering\nDavies-Bouldin Index: {kmeans_dbi:.5f}")
-    st.write(f"Silhouette Score: {kmeans_sil:.5f}")
+    # Heatmap visualization of cluster distribution
+    latitudes = df_kota_scaled['Latitude']
+    longitudes = df_kota_scaled['Longitude']
+    locations = list(zip(latitudes, longitudes))
 
-    # Display cluster data
-    df_kmeans_cluster = df_kota_scaled.sort_values(by='Cluster')
+    map_center = [latitudes.mean(), longitudes.mean()]
+    folium_map = folium.Map(location=map_center, zoom_start=10)
 
-    # Show cluster distribution
-    cluster_dfs = {}
-    for cluster in df_kmeans_cluster['Cluster'].unique():
-        cluster_dfs[cluster] = df_kmeans_cluster[df_kmeans_cluster['Cluster'] == cluster]
+    folium.Marker([latitudes.mean(), longitudes.mean()], popup='Center').add_to(folium_map)
 
-    # Display cluster summaries
-    st.write("Cluster 0:")
-    st.dataframe(cluster_dfs[0].describe())
+    folium.plugins.HeatMap(locations).add_to(folium_map)
 
-    st.write("Cluster 1:")
-    st.dataframe(cluster_dfs[1].describe())
-
-    st.write("Cluster 2:")
-    st.dataframe(cluster_dfs[2].describe())
-
-    # Visualize clusters on a map
-    st.write("Visualisasi Cluster K-Means pada Peta")
-
-    m = folium.Map(location=[-7.9, 112.6], zoom_start=10)
-    heat_data = [[row['Latitude'], row['Longitude']] for index, row in df_kota.iterrows()]
-    HeatMap(heat_data).add_to(m)
-    folium_static(m)
+    # Save the map as an HTML file
+    map_file = '/tmp/heatmap.html'
+    folium_map.save(map_file)
+    st.markdown(f'<a href="file://{map_file}" target="_blank">Click here to view the map</a>', unsafe_allow_html=True)
