@@ -3,6 +3,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+from sklearn.impute import SimpleImputer
 import streamlit as st
 import numpy as np
 import folium
@@ -49,6 +50,11 @@ if uploaded_file is not None:
         plt.title("Persentase Missing Value per Kolom")
         st.pyplot()
 
+    # Menangani Missing Values dengan Imputasi Median
+    fitur = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg']
+    imputer = SimpleImputer(strategy='median')
+    df[fitur] = imputer.fit_transform(df[fitur])
+
     # Outlier Handling dengan Winsorization
     def winsorize(df, columns, limits=1.5):
         for col in columns:
@@ -60,7 +66,7 @@ if uploaded_file is not None:
             df[col] = np.clip(df[col], lower_limit, upper_limit)
         return df
 
-    numeric_columns = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg']
+    numeric_columns = fitur
     df = winsorize(df, numeric_columns)
 
     # Correlation Matrix
