@@ -35,83 +35,76 @@ if uploaded_file is not None:
     10. ddd_car: Arah Angin Terbanyak
     """)
 
-    # Exploratory Data Analysis (EDA)
-    df.info()
+    # Eksplorasi Data Awal
     st.write(f"Dimensi Data: {df.shape}")
     st.write(f"Missing Values:\n{df.isnull().sum()}")
 
-    # Handle outliers using IQR
-    def iqr_outliers(df):
-        out = []
-        numeric_df = df.select_dtypes(include=['float64', 'int64'])
-        q1 = numeric_df.quantile(0.25)
-        q3 = numeric_df.quantile(0.75)
-        iqr = q3 - q1
-        Lower_tail = q1 - 1.5 * iqr
-        Upper_tail = q3 + 1.5 * iqr
-        for column in numeric_df.columns:
-            for i in numeric_df[column]:
-                if i > Upper_tail[column] or i < Lower_tail[column]:
-                    out.append(i)
-        print("Outliers:", out)
+    # Visualisasi Missing Values
+    missing_values = df.isnull().mean() * 100
+    missing_values = missing_values[missing_values > 0].sort_values(ascending=False)
+    if not missing_values.empty:
+        plt.figure(figsize=(10, 6))
+        sns.barplot(x=missing_values.values, y=missing_values.index, color="dodgerblue")
+        plt.xlabel("Persentase Missing Value (%)")
+        plt.title("Persentase Missing Value per Kolom")
+        st.pyplot()
 
-    def Box_plots(df):
-        plt.figure(figsize=(8, 4))
-        plt.title("Box Plot")
-        sns.boxplot(data=df)
-        plt.show()
+    # Outlier Handling dengan Winsorization
+    def winsorize(df, columns, limits=1.5):
+        for col in columns:
+            q1 = df[col].quantile(0.25)
+            q3 = df[col].quantile(0.75)
+            iqr = q3 - q1
+            lower_limit = q1 - limits * iqr
+            upper_limit = q3 + limits * iqr
+            df[col] = np.clip(df[col], lower_limit, upper_limit)
+        return df
 
-    iqr_outliers(df)
-    Box_plots(df)
+    numeric_columns = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg']
+    df = winsorize(df, numeric_columns)
 
-    # Check for duplicate values
-    st.write(f"Jumlah data duplikat: {df.duplicated().sum()}")
-
-    # Descriptive statistics of the dataset
-    st.write(f"Deskripsi Data:\n{df.describe()}")
-
-    # Checking unique values
-    st.write(f"Unique values in the dataset:\n{df.nunique()}")
-
-    # Filter data for certain regions
-    kota_jatim = ["SIDOARJO", "TUBAN", "PASURUAN", "MALANG"]
-    df_kota = df[df['KOTA'].isin(kota_jatim)]
-    st.write("Data untuk Kota Jatim:")
-    st.dataframe(df_kota)
-
-    # Clustering with K-Means
-    df_kota_scaled = df_kota.copy()
-    scaler = StandardScaler()
-    fitur = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car']
-    df_kota_scaled[fitur] = scaler.fit_transform(df_kota_scaled[fitur])
-
-    # Drop unnecessary columns for clustering
-    columns_to_drop = ['Tanggal', 'Latitude', 'Longitude', 'KOTA', 'ddd_car']
-    available_columns_to_drop = [col for col in columns_to_drop if col in df_kota_scaled.columns]
-    cleaned_kota = df_kota_scaled.drop(columns=available_columns_to_drop, errors='ignore')
-
-    # KMeans Elbow Method to determine the optimal number of clusters
-    range_n_clusters = list(range(1, 11))
-    wcss = []
-
-    for n_clusters in range_n_clusters:
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-        kmeans.fit(cleaned_kota)
-        wcss.append(kmeans.inertia_)
-
-    # Elbow method plot
-    plt.figure(figsize=(8, 6))
-    plt.plot(range_n_clusters, wcss, marker='o', linestyle='-', color='b')
-    plt.title('Elbow Method for Optimal k')
-    plt.xlabel('Jumlah Klaster')
-    plt.ylabel('Within-cluster Sum of Squares (WCSS)')
+    # Correlation Matrix
+    numeric_data = df[numeric_columns]
+    corr_matrix = numeric_data.corr()
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f")
+    plt.title("Correlation Matrix")
     st.pyplot()
 
-    # Train KMeans with the optimal number of clusters
-    optimal_clusters = 3  # Based on Elbow Method
-    kmeans = KMeans(n_clusters=optimal_clusters, random_state=42)
-    df_kota_scaled['Cluster'] = kmeans.fit_predict(cleaned_kota)
+    # Clustering
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(numeric_data)
 
-    # Display clustered data
-    st.write("Data dengan Hasil Klastering:")
-    st.dataframe(df_kota_scaled.head())
+    # Menentukan jumlah klaster optimal menggunakan Elbow Method
+    wcss = []
+    for i in range(1, 11):
+        kmeans = KMeans(n_clusters=i, random_state=42)
+        kmeans.fit(scaled_data)
+        wcss.append(kmeans.inertia_)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(1, 11), wcss, marker='o', linestyle='-', color='blue')
+    plt.xlabel("Jumlah Klaster")
+    plt.ylabel("WCSS")
+    plt.title("Metode Elbow")
+    st.pyplot()
+
+    # Menggunakan jumlah klaster optimal
+    optimal_clusters = 3
+    kmeans = KMeans(n_clusters=optimal_clusters, random_state=42)
+    df['Cluster'] = kmeans.fit_predict(scaled_data)
+
+    st.write("Hasil Klastering:")
+    st.dataframe(df)
+
+    # Visualisasi dengan Heatmap
+    if "Latitude" in df.columns and "Longitude" in df.columns:
+        locations = df[["Latitude", "Longitude"]].dropna().values.tolist()
+        map_center = [df["Latitude"].mean(), df["Longitude"].mean()]
+        folium_map = folium.Map(location=map_center, zoom_start=10)
+        HeatMap(locations).add_to(folium_map)
+        map_file = '/tmp/heatmap.html'
+        folium_map.save(map_file)
+        st.markdown(f'<a href="file://{map_file}" target="_blank">Klik di sini untuk melihat peta</a>', unsafe_allow_html=True)
+    else:
+        st.write("Data tidak memiliki kolom Latitude dan Longitude untuk membuat peta heatmap.")
