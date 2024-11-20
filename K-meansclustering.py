@@ -2,15 +2,19 @@ import streamlit as st
 import sklearn
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Load dataset
+# Judul Aplikasi
 st.title("Clustering Curah Hujan dengan K-Means")
+
+# Unggah Dataset
 uploaded_file = st.file_uploader("Upload file dataset (.csv atau .xlsx)", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
     try:
+        # Membaca dataset
         if uploaded_file.name.endswith('.csv'):
             data = pd.read_csv(uploaded_file)
         else:
@@ -23,9 +27,14 @@ if uploaded_file is not None:
         features = st.multiselect("Pilih fitur untuk clustering:", options=data.columns)
 
         if len(features) > 0:
+            # Pastikan fitur yang dipilih adalah numerik
             if data[features].select_dtypes(include=['number']).shape[1] != len(features):
                 st.error("Pastikan semua fitur yang dipilih adalah numerik.")
             else:
+                # Isi nilai NaN dengan mean
+                imputer = SimpleImputer(strategy='mean')
+                data[features] = imputer.fit_transform(data[features])
+
                 # Scaling data
                 scaler = StandardScaler()
                 scaled_data = scaler.fit_transform(data[features])
