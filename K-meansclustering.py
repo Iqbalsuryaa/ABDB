@@ -7,20 +7,20 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, davies_bouldin_score
-from sklearn.pipeline import Pipeline
 
 # Judul Aplikasi
 st.title("Clustering Curah Hujan dengan K-Means")
 
 # Fungsi untuk visualisasi missing value
-def visualize_missing_values(df):
+def visualize_missing_values(df, title="Persentase Missing Value"):
     column_with_nan = df.columns[df.isnull().any()]
     percent_nan = [(col, round(df[col].isnull().sum() * 100 / len(df), 2)) for col in column_with_nan]
     tab = pd.DataFrame(percent_nan, columns=["Kolom", "Persentase Missing Value"]).sort_values(by="Persentase Missing Value", ascending=False)
     st.write(tab)
-    sns.barplot(x="Persentase Missing Value", y="Kolom", data=tab, edgecolor="black", color="deepskyblue")
-    plt.title("Persentase Missing Value per Kolom")
-    st.pyplot()
+    if not tab.empty:
+        sns.barplot(x="Persentase Missing Value", y="Kolom", data=tab, edgecolor="black", color="deepskyblue")
+        plt.title(title)
+        st.pyplot()
 
 # File uploader
 uploaded_file = st.file_uploader("Upload dataset (.csv atau .xlsx)", type=["csv", "xlsx"])
@@ -42,8 +42,8 @@ if uploaded_file:
         st.write("Deskripsi Statistik:")
         st.write(df.describe())
 
-        st.subheader("Analisis Missing Value")
-        visualize_missing_values(df)
+        st.subheader("Analisis Missing Value Sebelum Preprocessing")
+        visualize_missing_values(df, "Missing Value Sebelum Preprocessing")
 
         # Preprocessing
         st.subheader("Pra-pemrosesan Data")
@@ -51,6 +51,9 @@ if uploaded_file:
         df_imputed = pd.DataFrame(imputer.fit_transform(df.select_dtypes(include=[np.number])), columns=df.select_dtypes(include=[np.number]).columns)
         st.write("Data Setelah Mengisi Nilai Hilang:")
         st.dataframe(df_imputed.head())
+
+        st.subheader("Analisis Missing Value Setelah Preprocessing")
+        visualize_missing_values(df_imputed, "Missing Value Setelah Preprocessing")
 
         # Feature Scaling
         scaler = StandardScaler()
@@ -96,17 +99,21 @@ if uploaded_file:
 
             # Visualisasi Cluster
             if len(features) == 2:
-                # Scatter plot untuk dua fitur
                 plt.figure()
                 sns.scatterplot(x=df[features[0]], y=df[features[1]], hue=df['Cluster'], palette='viridis')
                 plt.title("Visualisasi Cluster dengan Dua Fitur")
                 st.pyplot()
-            elif len(features) == 4:
-                # Pair plot untuk empat fitur
-                st.write("Visualisasi Clustering dengan Empat Fitur:")
-                df_viz = df[features + ['Cluster']]
-                pair_plot = sns.pairplot(df_viz, hue='Cluster', palette='viridis', diag_kind='kde', corner=True)
-                st.pyplot(pair_plot.fig)
+
+            # Visualisasi Heatmap untuk empat fitur
+            if len(features) >= 4:
+                st.write("Visualisasi Heatmap untuk Cluster")
+                cluster_data = df_scaled[features]
+                cluster_data['Cluster'] = kmeans.labels_
+                cluster_mean = cluster_data.groupby('Cluster').mean()
+                plt.figure(figsize=(10, 6))
+                sns.heatmap(cluster_mean, annot=True, fmt=".2f", cmap="coolwarm", cbar=True)
+                plt.title("Heatmap Rata-rata Fitur pada Tiap Cluster")
+                st.pyplot()
 
     except Exception as e:
         st.error(f"Terjadi kesalahan: {e}")
