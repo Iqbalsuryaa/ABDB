@@ -6,3 +6,4 @@ scikit-learn
 openpyxl
 joblib
 import sys
+sklearn
