@@ -6,6 +6,8 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import davies_bouldin_score, silhouette_score
 import streamlit as st
 import numpy as np
+import folium
+from folium.plugins import HeatMap
 
 # Upload file CSV atau Excel
 uploaded_file = st.file_uploader("Pilih file CSV atau Excel", type=["csv", "xlsx"])
@@ -213,4 +215,34 @@ if uploaded_file is not None:
     st.dataframe(cluster_dfs[0].describe())
 
     st.write("Cluster 1:")
-    st.dataframe(cluster_dfs[
+    st.dataframe(cluster_dfs[1].describe())
+
+    st.write("Cluster 2:")
+    st.dataframe(cluster_dfs[2].describe())
+
+    # Create map with HeatMap and cluster markers
+    map_center = [df_kota['Latitude'].mean(), df_kota['Longitude'].mean()]
+    mymap = folium.Map(location=map_center, zoom_start=10)
+
+    # Add HeatMap
+    heat_data = [[row['Latitude'], row['Longitude']] for index, row in df_kota.iterrows()]
+    HeatMap(heat_data).add_to(mymap)
+
+    # Add cluster markers
+    for index, row in df_kota.iterrows():
+        folium.CircleMarker(
+            location=[row['Latitude'], row['Longitude']],
+            radius=5,
+            color="blue" if row['Cluster'] == 0 else "green" if row['Cluster'] == 1 else "red",
+            fill=True,
+            fill_color="blue" if row['Cluster'] == 0 else "green" if row['Cluster'] == 1 else "red",
+            fill_opacity=0.6
+        ).add_to(mymap)
+
+    # Save map to HTML and display
+    map_html = "cluster_map.html"
+    mymap.save(map_html)
+
+    # Show the map in Streamlit
+    st.write("Peta Klasterisasi dengan Heatmap:")
+    st.markdown(f'<iframe src="{map_html}" width="700" height="500"></iframe>', unsafe_allow_html=True)
