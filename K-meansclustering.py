@@ -40,32 +40,6 @@ if uploaded_file is not None:
     st.write(f"Dimensi Data: {df.shape}")
     st.write(f"Missing Values:\n{df.isnull().sum()}")
 
-    # Visualize missing values percentage
-    column_with_nan = df.columns[df.isnull().any()]
-    column_name = []
-    percent_nan = []
-
-    for i in column_with_nan:
-        column_name.append(i)
-        percent_nan.append(round(df[i].isnull().sum() * 100 / len(df), 2))
-
-    tab = pd.DataFrame(column_name, columns=["Column"])
-    tab["Percent_NaN"] = percent_nan
-    tab.sort_values(by=["Percent_NaN"], ascending=False, inplace=True)
-
-    sns.set(rc={"figure.figsize": (8, 4)})
-    sns.set_style("whitegrid")
-    p = sns.barplot(
-        x="Percent_NaN",
-        y="Column",
-        data=tab,
-        edgecolor="black",
-        color="deepskyblue"
-    )
-    p.set_title("Persentase Missing Value per Kolom\n", fontsize=20)
-    p.set_xlabel("\nPersentase Missing Value", fontsize=20)
-    st.pyplot()
-
     # Handle outliers using IQR
     def iqr_outliers(df):
         out = []
@@ -105,65 +79,6 @@ if uploaded_file is not None:
     st.write("Data untuk Kota Jatim:")
     st.dataframe(df_kota)
 
-    # Plot bar chart for data per Kabupaten
-    df_kota['KOTA'].value_counts().plot(kind='bar')
-    plt.xlabel('Kabupaten')
-    plt.ylabel('Jumlah')
-    plt.title('Jumlah Data per Kabupaten')
-    st.pyplot()
-
-    # Sample one record per city
-    def sampel_per_kota(group):
-        return group.sample(n=1)
-
-    df_sampled = df_kota.groupby('KOTA').apply(sampel_per_kota).reset_index(drop=True)
-    st.write("Sample Data per Kota:")
-    st.dataframe(df_sampled)
-
-    # Plot distribution of wind direction (ddd_car)
-    df_kota['ddd_car'].value_counts().plot(kind='bar')
-    plt.xlabel('Arah Mata Angin')
-    plt.ylabel('Jumlah')
-    plt.title('Jumlah Data per Arah Mata Angin')
-    st.pyplot()
-
-    # Correlation matrix
-    df_num = df.select_dtypes(exclude=["object"])
-    corr = df_num.corr()
-    plt.figure(figsize=(8,6))
-    sns.heatmap(corr, annot=True, cmap='coolwarm', fmt='.2f')
-    plt.title('Correlation Matrix')
-    st.pyplot()
-
-    # Winsorization for handling outliers
-    def winsorize(df_clean, cols, limits):
-        for col in cols:
-            df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
-            q1, q3 = df_clean[col].dropna().quantile([0.25, 0.75])
-            iqr_val = q3 - q1
-            lower_bound = q1 - limits * iqr_val
-            upper_bound = q3 + limits * iqr_val
-            df_clean[col] = np.clip(df_clean[col], lower_bound, upper_bound)
-        return df_clean
-
-    num_col = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car']
-    df_clean2 = winsorize(df_kota, num_col, 1.5)
-
-    # Boxplot before and after Winsorization
-    plt.figure(figsize=(12, 6))
-    plt.subplot(1, 2, 1)
-    sns.boxplot(data=df[num_col])
-    plt.title('Sebelum Winsorization')
-    plt.xticks(rotation=45)
-
-    plt.subplot(1, 2, 2)
-    sns.boxplot(data=df_clean2[num_col])
-    plt.title('Setelah Winsorization')
-    plt.xticks(rotation=45)
-
-    plt.tight_layout()
-    st.pyplot()
-
     # Clustering with K-Means
     df_kota_scaled = df_kota.copy()
     scaler = StandardScaler()
@@ -171,7 +86,9 @@ if uploaded_file is not None:
     df_kota_scaled[fitur] = scaler.fit_transform(df_kota_scaled[fitur])
 
     # Drop unnecessary columns for clustering
-    cleaned_kota = df_kota_scaled.drop(columns=['Tanggal', 'Latitude', 'Longitude', 'KOTA', 'ddd_car'])
+    columns_to_drop = ['Tanggal', 'Latitude', 'Longitude', 'KOTA', 'ddd_car']
+    available_columns_to_drop = [col for col in columns_to_drop if col in df_kota_scaled.columns]
+    cleaned_kota = df_kota_scaled.drop(columns=available_columns_to_drop, errors='ignore')
 
     # KMeans Elbow Method to determine the optimal number of clusters
     range_n_clusters = list(range(1, 11))
@@ -198,20 +115,3 @@ if uploaded_file is not None:
     # Display clustered data
     st.write("Data dengan Hasil Klastering:")
     st.dataframe(df_kota_scaled.head())
-
-    # Heatmap visualization of cluster distribution
-    latitudes = df_kota_scaled['Latitude']
-    longitudes = df_kota_scaled['Longitude']
-    locations = list(zip(latitudes, longitudes))
-
-    map_center = [latitudes.mean(), longitudes.mean()]
-    folium_map = folium.Map(location=map_center, zoom_start=10)
-
-    folium.Marker([latitudes.mean(), longitudes.mean()], popup='Center').add_to(folium_map)
-
-    folium.plugins.HeatMap(locations).add_to(folium_map)
-
-    # Save the map as an HTML file
-    map_file = '/tmp/heatmap.html'
-    folium_map.save(map_file)
-    st.markdown(f'<a href="file://{map_file}" target="_blank">Click here to view the map</a>', unsafe_allow_html=True)
