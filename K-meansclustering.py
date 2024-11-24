@@ -8,11 +8,9 @@ import streamlit as st
 import numpy as np
 import folium
 from folium.plugins import HeatMap
-from streamlit_folium import st_folium
 
-# Sidebar Input File
-st.sidebar.title("Pengaturan Input")
-uploaded_file = st.sidebar.file_uploader("Pilih file CSV atau Excel", type=["csv", "xlsx"])
+# Upload file CSV or Excel
+uploaded_file = st.file_uploader("Pilih file CSV atau Excel", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
     # Load data sesuai dengan jenis file
@@ -20,80 +18,99 @@ if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
     elif uploaded_file.name.endswith(".xlsx"):
         df = pd.read_excel(uploaded_file)
-
-    # Tampilkan Data Awal
-    st.write("### Data Awal")
+    
+    st.write("Data awal:")
     st.dataframe(df.head())
 
-    # Deskripsi Fitur
-    st.write("### Deskripsi Fitur Dataset")
+    # Feature Description
     st.write("""
-    1. Tn: Temperatur Minimum (°C)  
-    2. Tx: Temperatur Maksimum (°C)  
-    3. Tavg: Temperatur Rata-Rata (°C)  
-    4. RH_avg: Kelembaban Rata-Rata (%)  
-    5. RR: Curah Hujan (mm)  
-    6. ss: Lamanya Penyinaran Matahari (Jam)  
-    7. ff_x: Kecepatan Angin Maksimum (m/s)  
-    8. ddd_x: Arah Angin Saat Kecepatan Maksimum  
-    9. ff_avg: Kecepatan Angin Rata-Rata (m/s)  
+    1. Tn: Temperatur Minimum (Derajat Celcius)
+    2. Tx: Temperatur Maximum (Derajat Celcius)
+    3. Tavg: Temperatur Rata-Rata (Derajat Celcius)
+    4. RH_avg: Kelembaban Rata-Rata (%)
+    5. RR: Curah Hujan (mm)
+    6. ss: Lamanya Penyinaran Matahari (Jam)
+    7. ff_x: Kecepatan Angin Maksimum (m/s)
+    8. ddd_x: Arah Angin Saat Kecepatan Maksimum
+    9. ff_avg: Kecepatan Angin Rata-Rata (m/s)
     10. ddd_car: Arah Angin Terbanyak
     """)
 
-    # Missing Values
-    st.write("### Persentase Missing Value")
-    missing_values = df.isnull().mean() * 100
-    if not missing_values.empty:
-        st.bar_chart(missing_values)
+    # Eksplorasi Data Awal
+    st.write(f"Dimensi Data: {df.shape}")
+    st.write(f"Missing Values:\n{df.isnull().sum()}")
 
-    # Imputasi Missing Values
-    st.write("### Penanganan Missing Values")
+    # Visualisasi Missing Values
+    missing_values = df.isnull().mean() * 100
+    missing_values = missing_values[missing_values > 0].sort_values(ascending=False)
+    if not missing_values.empty:
+        plt.figure(figsize=(10, 6))
+        sns.barplot(x=missing_values.values, y=missing_values.index, color="dodgerblue")
+        plt.xlabel("Persentase Missing Value (%)")
+        plt.title("Persentase Missing Value per Kolom")
+        st.pyplot()
+
+    # Menangani Missing Values dengan Imputasi Median
     fitur = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg']
     imputer = SimpleImputer(strategy='median')
     df[fitur] = imputer.fit_transform(df[fitur])
-    st.write("Missing values telah diimputasi menggunakan nilai median.")
+
+    # Outlier Handling dengan Winsorization
+    def winsorize(df, columns, limits=1.5):
+        for col in columns:
+            q1 = df[col].quantile(0.25)
+            q3 = df[col].quantile(0.75)
+            iqr = q3 - q1
+            lower_limit = q1 - limits * iqr
+            upper_limit = q3 + limits * iqr
+            df[col] = np.clip(df[col], lower_limit, upper_limit)
+        return df
+
+    numeric_columns = fitur
+    df = winsorize(df, numeric_columns)
 
     # Correlation Matrix
-    st.write("### Correlation Matrix")
-    corr_matrix = df[fitur].corr()
+    numeric_data = df[numeric_columns]
+    corr_matrix = numeric_data.corr()
     plt.figure(figsize=(10, 8))
     sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f")
+    plt.title("Correlation Matrix")
     st.pyplot()
 
     # Clustering
-    st.write("### Klastering KMeans")
     scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(df[fitur])
+    scaled_data = scaler.fit_transform(numeric_data)
 
-    # Jumlah Klaster Optimal
-    st.sidebar.write("**Elbow Method**")
-    max_clusters = st.sidebar.slider("Jumlah Maksimal Klaster", min_value=1, max_value=10, value=5)
+    # Menentukan jumlah klaster optimal menggunakan Elbow Method
     wcss = []
-    for i in range(1, max_clusters + 1):
+    for i in range(1, 11):
         kmeans = KMeans(n_clusters=i, random_state=42)
         kmeans.fit(scaled_data)
         wcss.append(kmeans.inertia_)
+
     plt.figure(figsize=(10, 6))
-    plt.plot(range(1, max_clusters + 1), wcss, marker='o', linestyle='-', color='blue')
+    plt.plot(range(1, 11), wcss, marker='o', linestyle='-', color='blue')
     plt.xlabel("Jumlah Klaster")
     plt.ylabel("WCSS")
     plt.title("Metode Elbow")
     st.pyplot()
 
-    # Input Jumlah Klaster
-    optimal_clusters = st.sidebar.number_input("Jumlah Klaster Optimal", min_value=2, max_value=max_clusters, value=3)
+    # Menggunakan jumlah klaster optimal
+    optimal_clusters = 3
     kmeans = KMeans(n_clusters=optimal_clusters, random_state=42)
     df['Cluster'] = kmeans.fit_predict(scaled_data)
+
     st.write("Hasil Klastering:")
     st.dataframe(df)
 
-    # Heatmap
+    # Visualisasi dengan Heatmap
     if "Latitude" in df.columns and "Longitude" in df.columns:
-        st.write("### Visualisasi Heatmap")
         locations = df[["Latitude", "Longitude"]].dropna().values.tolist()
         map_center = [df["Latitude"].mean(), df["Longitude"].mean()]
         folium_map = folium.Map(location=map_center, zoom_start=10)
         HeatMap(locations).add_to(folium_map)
-        st_folium(folium_map, width=700, height=500)
+        map_file = '/tmp/heatmap.html'
+        folium_map.save(map_file)
+        st.markdown(f'<a href="file://{map_file}" target="_blank">Klik di sini untuk melihat peta</a>', unsafe_allow_html=True)
     else:
         st.write("Data tidak memiliki kolom Latitude dan Longitude untuk membuat peta heatmap.")
