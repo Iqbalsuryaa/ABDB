@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import davies_bouldin_score, silhouette_score
-import folium
-from folium.plugins import HeatMap
 
 # Judul Aplikasi
 st.title('Aplikasi Visualisasi Clustering K-Means')
@@ -54,13 +52,28 @@ if uploaded_file is not None:
     # Preprocessing Data (Scaling)
     if st.button('Tampilkan Preprocessing Data'):
         df_clean = df.copy()
+
+        # Pilih hanya kolom numerik untuk scaling
+        numerical_features = df_clean.select_dtypes(include=['float64', 'int64']).columns
+
+        # Lakukan scaling hanya pada kolom numerik
         scaler = StandardScaler()
-        features = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car']
-        df_clean[features] = scaler.fit_transform(df_clean[features])
+        df_clean[numerical_features] = scaler.fit_transform(df_clean[numerical_features])
+
+        # Tampilkan data yang sudah di-preprocess
         st.write(df_clean.head())
-    
+
     # Model K-means Clustering
     if st.button('Tampilkan Hasil Clustering K-Means'):
+        df_clean = df.copy()
+
+        # Pilih kolom numerik untuk clustering
+        numerical_features = df_clean.select_dtypes(include=['float64', 'int64']).columns
+
+        # Pastikan variabel features berisi kolom numerik yang benar
+        features = numerical_features  # Menggunakan kolom numerik untuk clustering
+
+        # Clustering KMeans
         kmeans = KMeans(n_clusters=3, random_state=42)
         df_clean['cluster'] = kmeans.fit_predict(df_clean[features])
         st.write(df_clean.head())
@@ -77,30 +90,11 @@ if uploaded_file is not None:
         ax.set_title("Clustering K-Means (Tavg vs RH_avg)")
         st.pyplot(fig)
 
-    # Menampilkan hasil visualisasi lainnya (misalnya Heatmap Korelasi)
+    # Menampilkan hasil visualisasi lainnya (misalnya Heatmap)
     if st.button('Tampilkan Heatmap Korelasi'):
-        df_num = df.select_dtypes(exclude=["object"])
+        df_num = df.select_dtypes(exclude=["object"])  # Pilih hanya kolom numerik
         corr = df_num.corr()
         plt.figure(figsize=(8,6))
         sns.heatmap(corr, annot=True, cmap='coolwarm', fmt='.2f')
         plt.title('Correlation Matrix')
         st.pyplot()
-
-    # Menampilkan Heatmap Peta (Map Heatmap)
-    if st.button('Tampilkan Heatmap Peta'):
-        # Pastikan data memiliki kolom 'latitude' dan 'longitude'
-        if 'latitude' in df.columns and 'longitude' in df.columns:
-            # Membuat peta dengan Folium
-            m = folium.Map(location=[df['latitude'].mean(), df['longitude'].mean()], zoom_start=10)
-
-            # Membuat daftar koordinat (latitude, longitude)
-            heat_data = [[row['latitude'], row['longitude']] for index, row in df.iterrows()]
-
-            # Menambahkan heatmap pada peta
-            HeatMap(heat_data).add_to(m)
-
-            # Menampilkan peta di Streamlit
-            st.write("Peta Heatmap:")
-            st.components.v1.html(m._repr_html_(), height=500)
-        else:
-            st.warning("Dataset tidak memiliki kolom 'latitude' dan 'longitude'.")
