@@ -8,6 +8,7 @@ import streamlit as st
 import numpy as np
 import folium
 from folium.plugins import HeatMap
+import streamlit.components.v1 as components
 
 # Fungsi untuk menangani outlier
 def winsorize(df, columns, limits=1.5):
@@ -30,7 +31,7 @@ def create_heatmap(data, features):
     for feature_name in features:
         if feature_name in data.columns:
             # Hapus baris dengan nilai NaN
-            feature_data = data[['Latitude', 'Longitude', feature_name']].dropna()
+            feature_data = data[['Latitude', 'Longitude', feature_name]].dropna()
             heatmap_data = feature_data.values.tolist()
             feature_group = folium.FeatureGroup(name=feature_name, show=(feature_name == features[0]))
             heatmap_layer = HeatMap(heatmap_data, radius=20)
@@ -133,11 +134,8 @@ if uploaded_file is not None:
         features = ['Tavg', 'RH_avg', 'RR', 'ss']
         heatmap = create_heatmap(df, features)
 
-        # Simpan peta sebagai file HTML
-        map_file = '/tmp/heatmap.html'
-        heatmap.save(map_file)
-
-        # Tampilkan peta di Streamlit
-        st.markdown(f'<iframe src="file://{map_file}" width="100%" height="500"></iframe>', unsafe_allow_html=True)
+        # Simpan peta sebagai HTML string dan tampilkan dengan Streamlit
+        map_html = heatmap._repr_html_()  # Dapatkan HTML peta dari folium map
+        components.html(map_html, height=500)
     else:
         st.write("Data tidak memiliki kolom Latitude dan Longitude untuk membuat peta heatmap.")
