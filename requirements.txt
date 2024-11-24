@@ -7,3 +7,4 @@ openpyxl
 joblib
 numpy
 folium
+branca
