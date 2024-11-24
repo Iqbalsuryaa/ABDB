@@ -1,100 +1,55 @@
-import streamlit as st
 import pandas as pd
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
+import streamlit as st
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import davies_bouldin_score, silhouette_score
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 
-# Judul Aplikasi
-st.title('Aplikasi Visualisasi Clustering K-Means')
+# Load Data
+data_file = st.file_uploader("Upload Data", type=["csv", "xlsx"])
+if data_file is not None:
+    if data_file.name.endswith('csv'):
+        df = pd.read_csv(data_file)
+    elif data_file.name.endswith('xlsx'):
+        df = pd.read_excel(data_file)
 
-# Upload file
-uploaded_file = st.file_uploader("Upload file dataset", type=["xlsx", "csv"])
-
-if uploaded_file is not None:
-    # Membaca file yang diupload
-    df = pd.read_excel(uploaded_file)
-    st.write("Dataframe yang diupload:")
+    # Menampilkan data untuk melihat struktur
     st.write(df.head())
-    
-    # EDA: Info Dataset
-    if st.button('Tampilkan Info Dataset'):
-        st.write(df.info())
-    
-    # Missing values
-    if st.button('Tampilkan Missing Values'):
-        missing_data = df.isnull().sum()
-        st.write(missing_data)
 
-    # Visualisasi Missing Value
-    if st.button('Visualisasi Missing Values'):
-        column_with_nan = df.columns[df.isnull().any()]
-        column_name = []
-        percent_nan = []
+    # Pastikan tidak ada kolom yang memiliki tipe data string selain label
+    # Menangani kolom kategorikal
+    # Misalkan kolom yang mengandung string seperti 'Kategori' perlu diubah menjadi numerik
+    label_encoder = LabelEncoder()
+    for col in df.select_dtypes(include=['object']).columns:
+        df[col] = label_encoder.fit_transform(df[col].astype(str))
 
-        for i in column_with_nan:
-            column_name.append(i)
-            percent_nan.append(round(df[i].isnull().sum() * 100 / len(df), 2))
+    # Menangani missing values
+    # Mengganti NaN dengan nilai rata-rata untuk kolom numerik
+    df.fillna(df.mean(), inplace=True)
 
-        tab = pd.DataFrame(column_name, columns=["Column"])
-        tab["Percent_NaN"] = percent_nan
-        tab.sort_values(by=["Percent_NaN"], ascending=False, inplace=True)
+    # Menampilkan data yang sudah dibersihkan
+    st.write("Data setelah membersihkan kolom:")
+    st.write(df.head())
 
-        sns.set(rc={"figure.figsize": (8, 4)})
-        sns.set_style("whitegrid")
-        p = sns.barplot(x="Percent_NaN", y="Column", data=tab, edgecolor="black", color="deepskyblue")
-        p.set_title("Persentase Missing Value per Kolom", fontsize=20)
-        p.set_xlabel("Persentase Missing Value", fontsize=15)
-        st.pyplot()
+    # Pilih fitur untuk clustering
+    features = st.multiselect("Pilih fitur untuk clustering", df.columns)
 
-    # Preprocessing Data (Scaling)
-    if st.button('Tampilkan Preprocessing Data'):
-        df_clean = df.copy()
-
-        # Pilih hanya kolom numerik untuk scaling
-        numerical_features = df_clean.select_dtypes(include=['float64', 'int64']).columns
-
-        # Lakukan scaling hanya pada kolom numerik
-        scaler = StandardScaler()
-        df_clean[numerical_features] = scaler.fit_transform(df_clean[numerical_features])
-
-        # Tampilkan data yang sudah di-preprocess
-        st.write(df_clean.head())
-
-    # Model K-means Clustering
+    # Jika sudah memilih fitur dan menekan tombol
     if st.button('Tampilkan Hasil Clustering K-Means'):
-        df_clean = df.copy()
+        if len(features) > 0:
+            # Standardisasi data
+            scaler = StandardScaler()
+            df_scaled = scaler.fit_transform(df[features])
 
-        # Pilih kolom numerik untuk clustering
-        numerical_features = df_clean.select_dtypes(include=['float64', 'int64']).columns
+            # KMeans Clustering
+            kmeans = KMeans(n_clusters=3, random_state=42)
+            df['cluster'] = kmeans.fit_predict(df_scaled)
 
-        # Pastikan variabel features berisi kolom numerik yang benar
-        features = numerical_features  # Menggunakan kolom numerik untuk clustering
-
-        # Clustering KMeans
-        kmeans = KMeans(n_clusters=3, random_state=42)
-        df_clean['cluster'] = kmeans.fit_predict(df_clean[features])
-        st.write(df_clean.head())
-
-        # Evaluasi Model
-        db_score = davies_bouldin_score(df_clean[features], df_clean['cluster'])
-        sil_score = silhouette_score(df_clean[features], df_clean['cluster'])
-        st.write(f"Davies-Bouldin Score: {db_score:.5f}")
-        st.write(f"Silhouette Score: {sil_score:.5f}")
-
-        # Visualisasi Cluster
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.scatterplot(x='Tavg', y='RH_avg', hue='cluster', data=df_clean, palette="Set1", ax=ax)
-        ax.set_title("Clustering K-Means (Tavg vs RH_avg)")
-        st.pyplot(fig)
-
-    # Menampilkan hasil visualisasi lainnya (misalnya Heatmap)
-    if st.button('Tampilkan Heatmap Korelasi'):
-        df_num = df.select_dtypes(exclude=["object"])  # Pilih hanya kolom numerik
-        corr = df_num.corr()
-        plt.figure(figsize=(8,6))
-        sns.heatmap(corr, annot=True, cmap='coolwarm', fmt='.2f')
-        plt.title('Correlation Matrix')
-        st.pyplot()
+            # Menampilkan hasil
+            st.write("Hasil Clustering:")
+            st.write(df.head())
+            
+            # Visualisasi Clustering
+            st.subheader("Visualisasi Clustering")
+            st.scatter_chart(df[['cluster']].head())  # Gantilah ini sesuai visualisasi yang sesuai
+        else:
+            st.warning("Pilih fitur terlebih dahulu untuk clustering")
