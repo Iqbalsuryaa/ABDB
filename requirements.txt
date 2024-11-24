@@ -8,3 +8,5 @@ joblib
 numpy
 folium
 branca
+plotly
+geopy
