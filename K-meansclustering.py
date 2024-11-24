@@ -9,7 +9,41 @@ import numpy as np
 import folium
 from folium.plugins import HeatMap
 
-# Upload file CSV or Excel
+# Fungsi untuk menangani outlier
+def winsorize(df, columns, limits=1.5):
+    for col in columns:
+        q1 = df[col].quantile(0.25)
+        q3 = df[col].quantile(0.75)
+        iqr = q3 - q1
+        lower_limit = q1 - limits * iqr
+        upper_limit = q3 + limits * iqr
+        df[col] = np.clip(df[col], lower_limit, upper_limit)
+    return df
+
+# Fungsi untuk membuat heatmap
+def create_heatmap(data, features):
+    latitude_center = data['Latitude'].mean()
+    longitude_center = data['Longitude'].mean()
+
+    map_heatmap = folium.Map(location=[latitude_center, longitude_center], zoom_start=5)
+
+    for feature_name in features:
+        if feature_name in data.columns:
+            # Hapus baris dengan nilai NaN
+            feature_data = data[['Latitude', 'Longitude', feature_name']].dropna()
+            heatmap_data = feature_data.values.tolist()
+            feature_group = folium.FeatureGroup(name=feature_name, show=(feature_name == features[0]))
+            heatmap_layer = HeatMap(heatmap_data, radius=20)
+            feature_group.add_child(heatmap_layer)
+            map_heatmap.add_child(feature_group)
+
+    folium.LayerControl().add_to(map_heatmap)
+    return map_heatmap
+
+# Streamlit interface
+st.title("Eksplorasi dan Visualisasi Data Cuaca dengan Heatmap dan Klasterisasi")
+
+# Upload file CSV atau Excel
 uploaded_file = st.file_uploader("Pilih file CSV atau Excel", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
@@ -18,12 +52,13 @@ if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
     elif uploaded_file.name.endswith(".xlsx"):
         df = pd.read_excel(uploaded_file)
-    
+
     st.write("Data awal:")
     st.dataframe(df.head())
 
-    # Feature Description
+    # Deskripsi fitur
     st.write("""
+    **Deskripsi Fitur:**
     1. Tn: Temperatur Minimum (Derajat Celcius)
     2. Tx: Temperatur Maximum (Derajat Celcius)
     3. Tavg: Temperatur Rata-Rata (Derajat Celcius)
@@ -56,16 +91,6 @@ if uploaded_file is not None:
     df[fitur] = imputer.fit_transform(df[fitur])
 
     # Outlier Handling dengan Winsorization
-    def winsorize(df, columns, limits=1.5):
-        for col in columns:
-            q1 = df[col].quantile(0.25)
-            q3 = df[col].quantile(0.75)
-            iqr = q3 - q1
-            lower_limit = q1 - limits * iqr
-            upper_limit = q3 + limits * iqr
-            df[col] = np.clip(df[col], lower_limit, upper_limit)
-        return df
-
     numeric_columns = fitur
     df = winsorize(df, numeric_columns)
 
@@ -103,14 +128,16 @@ if uploaded_file is not None:
     st.write("Hasil Klastering:")
     st.dataframe(df)
 
-    # Visualisasi dengan Heatmap
+    # Visualisasi dengan Heatmap Interaktif
     if "Latitude" in df.columns and "Longitude" in df.columns:
-        locations = df[["Latitude", "Longitude"]].dropna().values.tolist()
-        map_center = [df["Latitude"].mean(), df["Longitude"].mean()]
-        folium_map = folium.Map(location=map_center, zoom_start=10)
-        HeatMap(locations).add_to(folium_map)
+        features = ['Tavg', 'RH_avg', 'RR', 'ss']
+        heatmap = create_heatmap(df, features)
+
+        # Simpan peta sebagai file HTML
         map_file = '/tmp/heatmap.html'
-        folium_map.save(map_file)
-        st.markdown(f'<a href="file://{map_file}" target="_blank">Klik di sini untuk melihat peta</a>', unsafe_allow_html=True)
+        heatmap.save(map_file)
+
+        # Tampilkan peta di Streamlit
+        st.markdown(f'<iframe src="file://{map_file}" width="100%" height="500"></iframe>', unsafe_allow_html=True)
     else:
         st.write("Data tidak memiliki kolom Latitude dan Longitude untuk membuat peta heatmap.")
