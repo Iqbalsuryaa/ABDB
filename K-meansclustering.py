@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import davies_bouldin_score, silhouette_score
+import folium
+from folium.plugins import HeatMap
 
 # Judul Aplikasi
 st.title('Aplikasi Visualisasi Clustering K-Means')
@@ -86,7 +88,7 @@ if uploaded_file is not None:
         ax.set_title("Clustering K-Means (Tavg vs RH_avg)")
         st.pyplot(fig)
 
-    # Menampilkan hasil visualisasi lainnya (misalnya Heatmap)
+    # Menampilkan hasil visualisasi Heatmap Korelasi
     if st.button('Tampilkan Heatmap Korelasi'):
         df_num = df.select_dtypes(exclude=["object"])
         corr = df_num.corr()
@@ -95,23 +97,19 @@ if uploaded_file is not None:
         plt.title('Correlation Matrix')
         st.pyplot()
 
-    # Menampilkan Peta Heatmap untuk Visualisasi Geospasial
-    if st.button('Tampilkan Peta Heatmap Geospasial'):
-        import geopandas as gpd
-        import folium
-        from folium.plugins import HeatMap
-
-        # Pastikan dataset memiliki kolom koordinat (latitude, longitude)
+    # Peta Heatmap (jika data memiliki kolom latitude dan longitude)
+    if st.button('Tampilkan Peta Heatmap'):
         if 'latitude' in df.columns and 'longitude' in df.columns:
-            # Membuat objek peta menggunakan folium
-            m = folium.Map(location=[df['latitude'].mean(), df['longitude'].mean()], zoom_start=6)
+            # Menyiapkan peta
+            map_center = [df['latitude'].mean(), df['longitude'].mean()]
+            folium_map = folium.Map(location=map_center, zoom_start=12)
 
-            # Menggunakan HeatMap dari folium untuk visualisasi
+            # Menambahkan heatmap
             heat_data = [[row['latitude'], row['longitude']] for index, row in df.iterrows()]
-            HeatMap(heat_data).add_to(m)
+            HeatMap(heat_data).add_to(folium_map)
 
-            # Menampilkan peta di Streamlit
-            st.write("Peta Heatmap Geospasial:")
-            st.write(m._repr_html_(), unsafe_allow_html=True)
+            # Simpan peta sebagai file HTML dan tampilkan
+            folium_map.save("heatmap.html")
+            st.components.v1.html(open("heatmap.html", "r").read(), height=600)
         else:
-            st.write("Dataset tidak memiliki kolom latitude dan longitude untuk peta heatmap geospasial.")
+            st.write("Data tidak memiliki kolom latitude dan longitude. Tidak dapat menampilkan peta.")
