@@ -8,7 +8,6 @@ import streamlit as st
 import numpy as np
 import folium
 from folium.plugins import HeatMap
-import streamlit.components.v1 as components
 
 # Fungsi untuk menangani outlier
 def winsorize(df, columns, limits=1.5):
@@ -31,7 +30,7 @@ def create_heatmap(data, features):
     for feature_name in features:
         if feature_name in data.columns:
             # Hapus baris dengan nilai NaN
-            feature_data = data[['Latitude', 'Longitude', feature_name]].dropna()
+            feature_data = data[['Latitude', 'Longitude', feature_name']].dropna()
             heatmap_data = feature_data.values.tolist()
             feature_group = folium.FeatureGroup(name=feature_name, show=(feature_name == features[0]))
             heatmap_layer = HeatMap(heatmap_data, radius=20)
@@ -80,11 +79,11 @@ if uploaded_file is not None:
     missing_values = df.isnull().mean() * 100
     missing_values = missing_values[missing_values > 0].sort_values(ascending=False)
     if not missing_values.empty:
-        plt.figure(figsize=(10, 6))
-        sns.barplot(x=missing_values.values, y=missing_values.index, color="dodgerblue")
-        plt.xlabel("Persentase Missing Value (%)")
-        plt.title("Persentase Missing Value per Kolom")
-        st.pyplot()
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.barplot(x=missing_values.values, y=missing_values.index, color="dodgerblue", ax=ax)
+        ax.set_xlabel("Persentase Missing Value (%)")
+        ax.set_title("Persentase Missing Value per Kolom")
+        st.pyplot(fig)
 
     # Menangani Missing Values dengan Imputasi Median
     fitur = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg']
@@ -98,10 +97,10 @@ if uploaded_file is not None:
     # Correlation Matrix
     numeric_data = df[numeric_columns]
     corr_matrix = numeric_data.corr()
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f")
-    plt.title("Correlation Matrix")
-    st.pyplot()
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
+    ax.set_title("Correlation Matrix")
+    st.pyplot(fig)
 
     # Clustering
     scaler = StandardScaler()
@@ -114,12 +113,12 @@ if uploaded_file is not None:
         kmeans.fit(scaled_data)
         wcss.append(kmeans.inertia_)
 
-    plt.figure(figsize=(10, 6))
-    plt.plot(range(1, 11), wcss, marker='o', linestyle='-', color='blue')
-    plt.xlabel("Jumlah Klaster")
-    plt.ylabel("WCSS")
-    plt.title("Metode Elbow")
-    st.pyplot()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(range(1, 11), wcss, marker='o', linestyle='-', color='blue')
+    ax.set_xlabel("Jumlah Klaster")
+    ax.set_ylabel("WCSS")
+    ax.set_title("Metode Elbow")
+    st.pyplot(fig)
 
     # Menggunakan jumlah klaster optimal
     optimal_clusters = 3
@@ -134,8 +133,11 @@ if uploaded_file is not None:
         features = ['Tavg', 'RH_avg', 'RR', 'ss']
         heatmap = create_heatmap(df, features)
 
-        # Simpan peta sebagai HTML string dan tampilkan dengan Streamlit
-        map_html = heatmap._repr_html_()  # Dapatkan HTML peta dari folium map
-        components.html(map_html, height=500)
+        # Simpan peta sebagai file HTML
+        map_file = '/tmp/heatmap.html'
+        heatmap.save(map_file)
+
+        # Tampilkan peta di Streamlit
+        st.markdown(f'<iframe src="file://{map_file}" width="100%" height="500"></iframe>', unsafe_allow_html=True)
     else:
         st.write("Data tidak memiliki kolom Latitude dan Longitude untuk membuat peta heatmap.")
