@@ -1,13 +1,30 @@
-import streamlit as st
-from PIL import Image
-import numpy as np
-import pandas as pd
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
-import tensorflow as tf
+# Tambahkan fungsi untuk halaman Insight, Decision, dan Conclusion
+def insight():
+    st.title("Insight")
+    st.write("Halaman ini menampilkan insight dari data yang telah dianalisis.")
+    st.write("""
+        - **Analisis Tren:** Curah hujan cenderung meningkat di musim penghujan.
+        - **Pola Cuaca:** Suhu dan kelembaban memiliki korelasi signifikan terhadap curah hujan.
+        - **Rekomendasi Data:** Data curah hujan dan cuaca perlu diupdate secara berkala untuk akurasi lebih baik.
+    """)
 
-# Fungsi untuk setiap menu
+def decision():
+    st.title("Decision")
+    st.write("Halaman ini memberikan keputusan berdasarkan analisis data.")
+    st.write("""
+        - **Keputusan:** Berdasarkan prediksi curah hujan, disarankan menanam padi pada bulan Desember.
+        - **Konteks:** Wilayah dengan kelembaban di atas 80% dan curah hujan tinggi cocok untuk pertanian basah.
+    """)
+
+def conclusion():
+    st.title("Conclusion")
+    st.write("Halaman ini memberikan kesimpulan dari analisis data.")
+    st.write("""
+        - **Kesimpulan:** Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
+        - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
+    """)
+
+# Modifikasi fungsi home untuk menambahkan tombol navigasi
 def home():
     # Menampilkan Header/Banner
     st.markdown(
@@ -55,40 +72,18 @@ def home():
         - **Output:** Prediksi cuaca atau rekomendasi tindakan untuk sektor pertanian.
     """)
 
-# Fungsi lain tetap sama seperti sebelumnya...
-def prediksi_arima():
-    st.title("Prediksi Curah Hujan dengan Metode ARIMA")
-    st.write("Halaman ini akan memproses data curah hujan menggunakan model ARIMA.")
-    # Data Dummy
-    data = {"Bulan": ["Jan", "Feb", "Mar", "Apr", "Mei"],
-            "Curah Hujan": [100, 150, 200, 250, 300]}
-    df = pd.DataFrame(data)
-    st.dataframe(df)
-
-def klasifikasi_cnn():
-    st.title("Klasifikasi Citra Awan dengan Metode CNN")
-    uploaded_file = st.file_uploader("Unggah Gambar Awan", type=["jpg", "png", "jpeg"])
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="Citra yang diunggah.", use_column_width=True)
-
-def klasifikasi_decision_tree():
-    st.title("Klasifikasi Cuaca menggunakan Decision Trees")
-    suhu = st.number_input("Suhu (°C)", min_value=0, max_value=50, value=25)
-    kelembaban = st.number_input("Kelembaban (%)", min_value=0, max_value=100, value=75)
-    angin = st.number_input("Kecepatan Angin (km/jam)", min_value=0, max_value=200, value=15)
-    if st.button("Prediksi Cuaca"):
-        st.write("**Kategori Cuaca: Berawan**")
-
-def clustering_kmeans():
-    st.title("Clustering Curah Hujan dengan Metode K-Means")
-    data = np.random.rand(100, 2) * 100
-    kmeans = KMeans(n_clusters=3, random_state=0).fit(data)
-    labels = kmeans.labels_
-    fig, ax = plt.subplots()
-    ax.scatter(data[:, 0], data[:, 1], c=labels, cmap='viridis')
-    ax.set_title("Clustering Curah Hujan")
-    st.pyplot(fig)
+    # Tombol navigasi ke halaman tambahan
+    st.subheader("Lanjutkan ke Halaman Lain")
+    col1, col2, col3 = st.columns(3)  # Membuat tiga kolom untuk tombol
+    with col1:
+        if st.button("Insight"):
+            insight()
+    with col2:
+        if st.button("Decision"):
+            decision()
+    with col3:
+        if st.button("Conclusion"):
+            conclusion()
 
 # Sidebar Menu
 st.sidebar.title("Main Menu")
@@ -114,4 +109,3 @@ elif menu == "Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees":
     klasifikasi_decision_tree()
 elif menu == "Clustering Curah Hujan dengan Metode K-Means":
     clustering_kmeans()
-
