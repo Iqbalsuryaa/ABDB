@@ -55,7 +55,7 @@ def home():
     st.subheader("Arsitektur Sistem")
     st.markdown(
         """
-        <img src="https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/hider.png" alt="Gambar Hider" width="700">
+        <img src="https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/arsitektur sistem70.drawio.png" alt="Gambar Arsi" width="700">
         """,
         unsafe_allow_html=True,
     )
