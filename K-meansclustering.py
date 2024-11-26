@@ -11,11 +11,22 @@ import tensorflow as tf
 def home():
     st.title("Home")
     st.write("Selamat datang di aplikasi prediksi dan analisis curah hujan!")
+
+    # Menampilkan gambar menggunakan st.image
     st.image(
         "https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/hider.png",
-        caption="Gambar Hider",
+        caption="Gambar Hider (via st.image)",
         use_column_width=True,
     )
+    
+    # Menampilkan gambar menggunakan HTML
+    st.markdown(
+        """
+        <img src="https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/hider.png" alt="Gambar Hider" width="700">
+        """,
+        unsafe_allow_html=True,
+    )
+
 
 # Prediksi Curah Hujan dengan Metode ARIMA
 def prediksi_arima():
