@@ -92,33 +92,19 @@ def home():
         - **Output:** Prediksi cuaca atau rekomendasi tindakan untuk sektor pertanian.
     """)
 
-# Halaman ARIMA
-def arima_page():
-    st.title("Prediksi Curah Hujan dengan ARIMA")
-    st.write("Halaman ini berisi implementasi prediksi curah hujan menggunakan model ARIMA.")
-    # Contoh peramalan cuaca menggunakan ARIMA
-    st.write("""
-        Di halaman ini, kita akan menampilkan hasil peramalan curah hujan dengan model ARIMA.
-        (Implementasi kode ARIMA dapat ditambahkan di sini)
-    """)
-
-# Halaman CNN
-def cnn_page():
-    st.title("Klasifikasi Citra Awan Curah Hujan dengan CNN")
-    st.write("Halaman ini berisi implementasi klasifikasi citra awan dengan CNN.")
-    # Implementasi klasifikasi CNN bisa ditambahkan di sini.
-
-# Halaman Decision Trees
-def decision_trees_page():
-    st.title("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees")
-    st.write("Halaman ini berisi implementasi klasifikasi cuaca dengan Decision Trees.")
-    # Implementasi Decision Trees bisa ditambahkan di sini.
-
-# Halaman K-Means
-def kmeans_page():
-    st.title("Clustering Curah Hujan dengan K-Means")
-    st.write("Halaman ini berisi implementasi clustering data curah hujan dengan K-Means.")
-    # Implementasi K-Means bisa ditambahkan di sini.
+# Menangani halaman berdasarkan tombol yang dipilih di Home
+if "page" in st.session_state:
+    page = st.session_state.page
+    if page == "ARIMA":
+        arima_page()
+    elif page == "CNN":
+        cnn_page()
+    elif page == "Decision Trees":
+        decision_trees_page()
+    elif page == "K-Means":
+        kmeans_page()
+else:
+    st.session_state.page = "Home"
 
 # Sidebar Menu
 st.sidebar.title("Main Menu")
@@ -141,15 +127,3 @@ elif menu == "Decision":
     decision()
 elif menu == "Conclusion":
     conclusion()
-
-# Menghandle halaman berdasarkan tombol yang dipilih di Home
-if "page" in st.session_state:
-    page = st.session_state.page
-    if page == "ARIMA":
-        arima_page()
-    elif page == "CNN":
-        cnn_page()
-    elif page == "Decision Trees":
-        decision_trees_page()
-    elif page == "K-Means":
-        kmeans_page()
