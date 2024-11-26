@@ -1,4 +1,6 @@
-# Fungsi untuk halaman Insight, Decision, dan Conclusion
+import streamlit as st
+
+# Fungsi untuk halaman Insight
 def insight():
     st.title("Insight")
     st.write("Halaman ini menampilkan insight dari data yang telah dianalisis.")
@@ -8,6 +10,7 @@ def insight():
         - **Rekomendasi Data:** Data curah hujan dan cuaca perlu diupdate secara berkala untuk akurasi lebih baik.
     """)
 
+# Fungsi untuk halaman Decision
 def decision():
     st.title("Decision")
     st.write("Halaman ini memberikan keputusan berdasarkan analisis data.")
@@ -16,6 +19,7 @@ def decision():
         - **Konteks:** Wilayah dengan kelembaban di atas 80% dan curah hujan tinggi cocok untuk pertanian basah.
     """)
 
+# Fungsi untuk halaman Conclusion
 def conclusion():
     st.title("Conclusion")
     st.write("Halaman ini memberikan kesimpulan dari analisis data.")
@@ -24,7 +28,7 @@ def conclusion():
         - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
     """)
 
-# Fungsi halaman Home
+# Fungsi untuk halaman Home
 def home():
     # Menampilkan Header/Banner
     st.markdown(
@@ -72,7 +76,7 @@ def home():
     """)
 
 # Sidebar Menu
-st.sidebar.header("Main Menu")
+st.sidebar.title("Main Menu")
 menu = st.sidebar.radio(
     "Pilih Menu:",
     (
@@ -97,10 +101,14 @@ elif menu == "Decision":
 elif menu == "Conclusion":
     conclusion()
 elif menu == "Prediksi Curah Hujan dengan Metode ARIMA":
-    prediksi_arima()
+    st.title("Prediksi Curah Hujan dengan Metode ARIMA")
+    st.write("Halaman ini akan berisi implementasi prediksi curah hujan dengan ARIMA.")
 elif menu == "Klasifikasi Citra Awan Curah Hujan dengan Metode CNN":
-    klasifikasi_cnn()
+    st.title("Klasifikasi Citra Awan Curah Hujan dengan Metode CNN")
+    st.write("Halaman ini akan berisi implementasi klasifikasi citra awan dengan CNN.")
 elif menu == "Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees":
-    klasifikasi_decision_tree()
+    st.title("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees")
+    st.write("Halaman ini akan berisi implementasi klasifikasi cuaca dengan Decision Trees.")
 elif menu == "Clustering Curah Hujan dengan Metode K-Means":
-    clustering_kmeans()
+    st.title("Clustering Curah Hujan dengan Metode K-Means")
+    st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
