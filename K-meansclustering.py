@@ -75,15 +75,22 @@ def home():
         - *Output:* Prediksi cuaca atau rekomendasi tindakan untuk sektor pertanian.
     """)
 
+    # Menampilkan Insight, Decision, dan Conclusion di bawah Arsitektur Sistem
+    st.subheader("Insight")
+    insight()
+
+    st.subheader("Decision")
+    decision()
+
+    st.subheader("Conclusion")
+    conclusion()
+
 # Sidebar Menu
 st.sidebar.title("Main Menu")
 menu = st.sidebar.radio(
     "Pilih Menu:",
     (
         "Home",
-        "Insight",
-        "Decision",
-        "Conclusion",
         "Prediksi Curah Hujan dengan Metode ARIMA",
         "Klasifikasi Citra Awan Curah Hujan dengan Metode CNN",
         "Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees",
@@ -94,12 +101,6 @@ menu = st.sidebar.radio(
 # Menentukan menu yang dipilih
 if menu == "Home":
     home()
-elif menu == "Insight":
-    insight()
-elif menu == "Decision":
-    decision()
-elif menu == "Conclusion":
-    conclusion()
 elif menu == "Prediksi Curah Hujan dengan Metode ARIMA":
     st.title("Prediksi Curah Hujan dengan Metode ARIMA")
     st.write("Halaman ini akan berisi implementasi prediksi curah hujan dengan ARIMA.")
