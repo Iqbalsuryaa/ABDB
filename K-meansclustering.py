@@ -28,6 +28,42 @@ def conclusion():
         - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
     """)
 
+# Fungsi untuk halaman Conclusion
+def arima_page():
+    st.title("Prediksi Curah Hujan dengan Metode ARIMA")
+    st.write("Halaman ini menampilkan implementasi dari Prediksi Curah Hujan dengan Metode ARIMA")
+    st.write("""
+        - **Kesimpulan:** Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
+        - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
+    """)
+
+# Fungsi untuk halaman Conclusion
+def cnn_page():
+    st.title("Klasifikasi Citra Awan untuk prediksi Curah Hujan dengan CNN")
+    st.write("Halaman ini implementasi dari Klasifikasi Citra Awan untuk prediksi Curah Hujan dengan CNN")
+    st.write("""
+        - **Kesimpulan:** Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
+        - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
+    """)
+
+# Fungsi untuk halaman Conclusion
+def decision_trees_page():
+    st.title("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees")
+    st.write("Halaman ini implementasi dari Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees")
+    st.write("""
+        - **Kesimpulan:** Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
+        - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
+    """)
+
+# Fungsi untuk halaman Conclusion
+def kmeans_page():
+    st.title("Clustering Curah Hujan dengan menggunakan Metode K-Means")
+    st.write("Halaman ini implementasi dari Hasil Clustering Curah Hujan dengan K-Means")
+    st.write("""
+        - **Kesimpulan:** Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
+        - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
+    """)
+
 # Fungsi untuk halaman Home
 def home():
     # Menampilkan Header/Banner
