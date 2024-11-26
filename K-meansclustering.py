@@ -88,25 +88,25 @@ menu = st.sidebar.radio(
     "Pilih Menu:",
     (
         "Home",
-        "Prediksi Curah Hujan dengan Metode ARIMA",
-        "Klasifikasi Citra Awan Curah Hujan dengan Metode CNN",
-        "Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees",
-        "Clustering Curah Hujan dengan Metode K-Means",
+        "Prediksi Dengan Metode ARIMA",
+        "Klasifikasi Citra Dengan Metode CNN",
+        "Klasifikasi Dengan Decision Trees",
+        "Clustering Dengan Metode K-Means",
     )
 )
 
 # Menentukan menu yang dipilih
 if menu == "Home":
     home()
-elif menu == "Prediksi Curah Hujan dengan Metode ARIMA":
+elif menu == "Prediksi Dengan Metode ARIMA":
     st.title("Prediksi Curah Hujan dengan Metode ARIMA")
     st.write("Halaman ini akan berisi implementasi prediksi curah hujan dengan ARIMA.")
-elif menu == "Klasifikasi Citra Awan Curah Hujan dengan Metode CNN":
+elif menu == "Klasifikasi Citra Dengan Metode CNN":
     st.title("Klasifikasi Citra Awan Curah Hujan dengan Metode CNN")
     st.write("Halaman ini akan berisi implementasi klasifikasi citra awan dengan CNN.")
-elif menu == "Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees":
+elif menu == "Klasifikasi Dengan Decision Trees":
     st.title("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees")
     st.write("Halaman ini akan berisi implementasi klasifikasi cuaca dengan Decision Trees.")
-elif menu == "Clustering Curah Hujan dengan Metode K-Means":
+elif menu == "Clustering Dengan Metode K-Means":
     st.title("Clustering Curah Hujan dengan Metode K-Means")
     st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
