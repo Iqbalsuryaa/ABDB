@@ -40,6 +40,23 @@ def home():
         unsafe_allow_html=True,
     )
 
+    # Tombol-Tombol di bagian atas Home
+    st.subheader("Pilih Metode Analisis:")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        if st.button("Prediksi Curah Hujan dengan ARIMA"):
+            st.write("Halaman ini akan berisi implementasi prediksi curah hujan dengan ARIMA.")
+    with col2:
+        if st.button("Klasifikasi Citra Awan Curah Hujan dengan CNN"):
+            st.write("Halaman ini akan berisi implementasi klasifikasi citra awan dengan CNN.")
+    with col3:
+        if st.button("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees"):
+            st.write("Halaman ini akan berisi implementasi klasifikasi cuaca dengan Decision Trees.")
+    with col4:
+        if st.button("Clustering Curah Hujan dengan K-Means"):
+            st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
+
     # Judul dan Deskripsi
     st.title("Home")
     st.write("Selamat datang di aplikasi Analisis Curah Hujan Menggunakan Pendekatan Big Data untuk Mendukung Pertanian!")    
@@ -84,10 +101,6 @@ menu = st.sidebar.radio(
         "Insight",
         "Decision",
         "Conclusion",
-        "Prediksi Curah Hujan dengan Metode ARIMA",
-        "Klasifikasi Citra Awan Curah Hujan dengan Metode CNN",
-        "Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees",
-        "Clustering Curah Hujan dengan Metode K-Means",
     )
 )
 
@@ -100,15 +113,3 @@ elif menu == "Decision":
     decision()
 elif menu == "Conclusion":
     conclusion()
-elif menu == "Prediksi Curah Hujan dengan Metode ARIMA":
-    st.title("Prediksi Curah Hujan dengan Metode ARIMA")
-    st.write("Halaman ini akan berisi implementasi prediksi curah hujan dengan ARIMA.")
-elif menu == "Klasifikasi Citra Awan Curah Hujan dengan Metode CNN":
-    st.title("Klasifikasi Citra Awan Curah Hujan dengan Metode CNN")
-    st.write("Halaman ini akan berisi implementasi klasifikasi citra awan dengan CNN.")
-elif menu == "Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees":
-    st.title("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees")
-    st.write("Halaman ini akan berisi implementasi klasifikasi cuaca dengan Decision Trees.")
-elif menu == "Clustering Curah Hujan dengan Metode K-Means":
-    st.title("Clustering Curah Hujan dengan Metode K-Means")
-    st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
