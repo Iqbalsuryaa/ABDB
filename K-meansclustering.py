@@ -1,8 +1,7 @@
 import streamlit as st
 
 # Fungsi untuk halaman Insight
-def insight():
-    st.title("Insight")
+def insight_content():
     st.write("Halaman ini menampilkan insight dari data yang telah dianalisis.")
     st.write("""
         - *Analisis Tren:* Curah hujan cenderung meningkat di musim penghujan.
@@ -11,8 +10,7 @@ def insight():
     """)
 
 # Fungsi untuk halaman Decision
-def decision():
-    st.title("Decision")
+def decision_content():
     st.write("Halaman ini memberikan keputusan berdasarkan analisis data.")
     st.write("""
         - *Keputusan:* Berdasarkan prediksi curah hujan, disarankan menanam padi pada bulan Desember.
@@ -20,8 +18,7 @@ def decision():
     """)
 
 # Fungsi untuk halaman Conclusion
-def conclusion():
-    st.title("Conclusion")
+def conclusion_content():
     st.write("Halaman ini memberikan kesimpulan dari analisis data.")
     st.write("""
         - *Kesimpulan:* Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
@@ -75,15 +72,15 @@ def home():
         - *Output:* Prediksi cuaca atau rekomendasi tindakan untuk sektor pertanian.
     """)
 
-    # Menampilkan Insight, Decision, dan Conclusion di bawah Arsitektur Sistem
+    # Menampilkan Insight, Decision, dan Conclusion
     st.subheader("Insight")
-    insight()
+    insight_content()
 
     st.subheader("Decision")
-    decision()
+    decision_content()
 
     st.subheader("Conclusion")
-    conclusion()
+    conclusion_content()
 
 # Sidebar Menu
 st.sidebar.title("Main Menu")
