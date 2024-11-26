@@ -56,20 +56,11 @@ def home():
 
     # Tombol-Tombol di bagian bawah Home
     st.subheader("Pilih Metode Analisis:")
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        if st.button("Prediksi Curah Hujan dengan ARIMA"):
-            st.session_state.page = "ARIMA"
-    with col2:
-        if st.button("Klasifikasi Citra Awan Curah Hujan dengan CNN"):
-            st.session_state.page = "CNN"
-    with col3:
-        if st.button("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees"):
-            st.session_state.page = "Decision Trees"
-    with col4:
-        if st.button("Clustering Curah Hujan dengan K-Means"):
-            st.session_state.page = "K-Means"
+    choice = st.radio("Pilih metode analisis untuk melanjutkan:",
+                      ("Pilih Metode", "Prediksi Curah Hujan dengan ARIMA", 
+                       "Klasifikasi Citra Awan Curah Hujan dengan CNN",
+                       "Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees", 
+                       "Clustering Curah Hujan dengan K-Means"))
 
     # Menampilkan Gambar Arsitektur Sistem
     st.subheader("Arsitektur Sistem")
@@ -91,6 +82,16 @@ def home():
           dan clustering dengan K-Means untuk pengelompokan data.
         - **Output:** Prediksi cuaca atau rekomendasi tindakan untuk sektor pertanian.
     """)
+
+    # Konten Berdasarkan Pilihan
+    if choice == "Prediksi Curah Hujan dengan ARIMA":
+        arima_page()
+    elif choice == "Klasifikasi Citra Awan Curah Hujan dengan CNN":
+        cnn_page()
+    elif choice == "Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees":
+        decision_trees_page()
+    elif choice == "Clustering Curah Hujan dengan K-Means":
+        kmeans_page()
 
 # Halaman ARIMA
 def arima_page():
@@ -141,15 +142,3 @@ elif menu == "Decision":
     decision()
 elif menu == "Conclusion":
     conclusion()
-
-# Menghandle halaman berdasarkan tombol yang dipilih di Home
-if "page" in st.session_state:
-    page = st.session_state.page
-    if page == "ARIMA":
-        arima_page()
-    elif page == "CNN":
-        cnn_page()
-    elif page == "Decision Trees":
-        decision_trees_page()
-    elif page == "K-Means":
-        kmeans_page()
