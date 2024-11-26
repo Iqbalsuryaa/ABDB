@@ -40,7 +40,21 @@ def home():
         unsafe_allow_html=True,
     )
 
-    # Tombol-Tombol di bagian atas Home
+    # Judul dan Deskripsi Home
+    st.title("Home")
+    st.write("Selamat datang di aplikasi Analisis Curah Hujan Menggunakan Pendekatan Big Data untuk Mendukung Pertanian!")    
+
+    # Menampilkan Abstrak
+    st.subheader("Abstrak")
+    st.write("""
+        Aplikasi ini dirancang untuk memprediksi curah hujan berdasarkan data cuaca 
+        dan analisis citra awan. Berbagai metode seperti ARIMA, CNN, Decision Trees, 
+        dan K-Means digunakan untuk mendukung analisis ini. Tujuannya adalah 
+        untuk membantu sektor pertanian dan masyarakat dalam memahami pola cuaca 
+        yang lebih baik.
+    """)
+
+    # Tombol-Tombol di bagian bawah Home
     st.subheader("Pilih Metode Analisis:")
     col1, col2, col3, col4 = st.columns(4)
     
@@ -56,20 +70,6 @@ def home():
     with col4:
         if st.button("Clustering Curah Hujan dengan K-Means"):
             st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
-
-    # Judul dan Deskripsi
-    st.title("Home")
-    st.write("Selamat datang di aplikasi Analisis Curah Hujan Menggunakan Pendekatan Big Data untuk Mendukung Pertanian!")    
-
-    # Menampilkan Abstrak
-    st.subheader("Abstrak")
-    st.write("""
-        Aplikasi ini dirancang untuk memprediksi curah hujan berdasarkan data cuaca 
-        dan analisis citra awan. Berbagai metode seperti ARIMA, CNN, Decision Trees, 
-        dan K-Means digunakan untuk mendukung analisis ini. Tujuannya adalah 
-        untuk membantu sektor pertanian dan masyarakat dalam memahami pola cuaca 
-        yang lebih baik.
-    """)
 
     # Menampilkan Gambar Arsitektur Sistem
     st.subheader("Arsitektur Sistem")
