@@ -10,15 +10,7 @@ import tensorflow as tf
 # Fungsi untuk setiap menu
 def home():
     st.title("Home")
-    st.write("Selamat datang di aplikasi prediksi dan analisis curah hujan!")
-
-    # Menampilkan gambar menggunakan st.image
-    st.image(
-        "https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/hider.png",
-        caption="Gambar Hider (via st.image)",
-        use_column_width=True,
-    )
-    
+    st.write("Selamat datang di aplikasi prediksi dan analisis curah hujan!")    
     # Menampilkan gambar menggunakan HTML
     st.markdown(
         """
