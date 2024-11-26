@@ -1,4 +1,4 @@
-# Tambahkan fungsi untuk halaman Insight, Decision, dan Conclusion
+# Fungsi untuk halaman Insight, Decision, dan Conclusion
 def insight():
     st.title("Insight")
     st.write("Halaman ini menampilkan insight dari data yang telah dianalisis.")
@@ -24,7 +24,7 @@ def conclusion():
         - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
     """)
 
-# Modifikasi fungsi home untuk menambahkan tombol navigasi
+# Fungsi halaman Home
 def home():
     # Menampilkan Header/Banner
     st.markdown(
@@ -52,7 +52,6 @@ def home():
 
     # Menampilkan Gambar Arsitektur Sistem
     st.subheader("Arsitektur Sistem")
-    # Menampilkan gambar menggunakan HTML
     st.markdown(
         """
         <img src="https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/hider.png" alt="Gambar Hider" width="700">
@@ -72,25 +71,15 @@ def home():
         - **Output:** Prediksi cuaca atau rekomendasi tindakan untuk sektor pertanian.
     """)
 
-    # Tombol navigasi ke halaman tambahan
-    st.subheader("Lanjutkan ke Halaman Lain")
-    col1, col2, col3 = st.columns(3)  # Membuat tiga kolom untuk tombol
-    with col1:
-        if st.button("Insight"):
-            insight()
-    with col2:
-        if st.button("Decision"):
-            decision()
-    with col3:
-        if st.button("Conclusion"):
-            conclusion()
-
 # Sidebar Menu
-st.sidebar.title("Main Menu")
+st.sidebar.header("Main Menu")
 menu = st.sidebar.radio(
     "Pilih Menu:",
     (
         "Home",
+        "Insight",
+        "Decision",
+        "Conclusion",
         "Prediksi Curah Hujan dengan Metode ARIMA",
         "Klasifikasi Citra Awan Curah Hujan dengan Metode CNN",
         "Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees",
@@ -101,6 +90,12 @@ menu = st.sidebar.radio(
 # Menentukan menu yang dipilih
 if menu == "Home":
     home()
+elif menu == "Insight":
+    insight()
+elif menu == "Decision":
+    decision()
+elif menu == "Conclusion":
+    conclusion()
 elif menu == "Prediksi Curah Hujan dengan Metode ARIMA":
     prediksi_arima()
 elif menu == "Klasifikasi Citra Awan Curah Hujan dengan Metode CNN":
