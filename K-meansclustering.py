@@ -18,6 +18,39 @@ def home():
         """,
         unsafe_allow_html=True,
     )
+    
+    # Menampilkan Abstrak
+    st.subheader("Abstrak")
+    st.write("""
+        Aplikasi ini dirancang untuk memprediksi curah hujan berdasarkan data cuaca 
+        dan analisis citra awan. Berbagai metode seperti ARIMA, CNN, Decision Trees, 
+        dan K-Means digunakan untuk mendukung analisis ini. Tujuannya adalah 
+        untuk membantu sektor pertanian dan masyarakat dalam memahami pola cuaca 
+        yang lebih baik.
+    """)
+    
+    # Menampilkan Gambar Arsitektur Sistem
+    st.subheader("Arsitektur Sistem")
+    # Menampilkan gambar menggunakan HTML
+    st.markdown(
+        """
+        <img src="https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/hider.png" alt="Gambar Hider" width="700">
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    # Penjelasan Arsitektur Sistem
+    st.write("""
+        Arsitektur sistem ini menggambarkan alur kerja aplikasi dari pengambilan data,
+        preprocessing, hingga analisis. Data curah hujan diolah menggunakan beberapa
+        metode untuk menghasilkan prediksi yang akurat. Komponen utama meliputi:
+        - **Pengumpulan Data:** Data cuaca harian dari BMKG atau citra awan.
+        - **Preprocessing:** Normalisasi data, augmentasi gambar, dan transformasi fitur.
+        - **Model Analitik:** Penggunaan algoritma ARIMA untuk data waktu, CNN untuk klasifikasi gambar,
+          dan clustering dengan K-Means untuk pengelompokan data.
+        - **Output:** Prediksi cuaca atau rekomendasi tindakan untuk sektor pertanian.
+    """)
+
 
 
 # Prediksi Curah Hujan dengan Metode ARIMA
