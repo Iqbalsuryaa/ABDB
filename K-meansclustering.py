@@ -27,19 +27,18 @@ def home():
     """)
 
     st.subheader("Pilih Metode Analisis:")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        if st.button("Prediksi Curah Hujan dengan ARIMA"):
-            st.session_state.page = "ARIMA"
-    with col2:
-        if st.button("Klasifikasi Citra Awan Curah Hujan dengan CNN"):
-            st.session_state.page = "CNN"
-    with col3:
-        if st.button("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees"):
-            st.session_state.page = "Decision Trees"
-    with col4:
-        if st.button("Clustering Curah Hujan dengan K-Means"):
-            st.session_state.page = "K-Means"
+    
+    # Mengganti tombol dengan selectbox untuk memilih metode analisis
+    analisis_metode = st.radio(
+        "Pilih metode analisis yang diinginkan:",
+        ("ARIMA", "CNN", "Decision Trees", "K-Means"),
+        index=["ARIMA", "CNN", "Decision Trees", "K-Means"].index(st.session_state.page) if st.session_state.page != "Home" else 0
+    )
+    
+    # Menyimpan pilihan metode analisis ke dalam session_state
+    if analisis_metode != st.session_state.page:
+        st.session_state.page = analisis_metode
+
 
 def insight():
     st.title("Insight")
