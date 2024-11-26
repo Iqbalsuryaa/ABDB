@@ -113,7 +113,9 @@ st.sidebar.title("Main Menu")
 menu = st.sidebar.radio(
     "Pilih Menu:",
     ("Home", "Insight", "Decision", "Conclusion"),
-    index=["Home", "Insight", "Decision", "Conclusion"].index(st.session_state.page),
+    index=["Home", "Insight", "Decision", "Conclusion"].index(
+        st.session_state.page if st.session_state.page in ["Home", "Insight", "Decision", "Conclusion"] else "Home"
+    ),
 )
 if menu != st.session_state.page:
     st.session_state.page = menu
