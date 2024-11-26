@@ -28,41 +28,32 @@ def conclusion():
         - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
     """)
 
-# Fungsi untuk halaman Conclusion
+# Halaman ARIMA
 def arima_page():
-    st.title("Prediksi Curah Hujan dengan Metode ARIMA")
-    st.write("Halaman ini menampilkan implementasi dari Prediksi Curah Hujan dengan Metode ARIMA")
+    st.title("Prediksi Curah Hujan dengan ARIMA")
+    st.write("Halaman ini berisi implementasi prediksi curah hujan menggunakan model ARIMA.")
     st.write("""
-        - **Kesimpulan:** Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
-        - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
+        Di halaman ini, kita akan menampilkan hasil peramalan curah hujan dengan model ARIMA.
+        (Implementasi kode ARIMA dapat ditambahkan di sini)
     """)
 
-# Fungsi untuk halaman Conclusion
+# Halaman CNN
 def cnn_page():
-    st.title("Klasifikasi Citra Awan untuk prediksi Curah Hujan dengan CNN")
-    st.write("Halaman ini implementasi dari Klasifikasi Citra Awan untuk prediksi Curah Hujan dengan CNN")
-    st.write("""
-        - **Kesimpulan:** Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
-        - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
-    """)
+    st.title("Klasifikasi Citra Awan Curah Hujan dengan CNN")
+    st.write("Halaman ini berisi implementasi klasifikasi citra awan dengan CNN.")
+    # Implementasi klasifikasi CNN bisa ditambahkan di sini.
 
-# Fungsi untuk halaman Conclusion
+# Halaman Decision Trees
 def decision_trees_page():
     st.title("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees")
-    st.write("Halaman ini implementasi dari Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees")
-    st.write("""
-        - **Kesimpulan:** Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
-        - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
-    """)
+    st.write("Halaman ini berisi implementasi klasifikasi cuaca dengan Decision Trees.")
+    # Implementasi Decision Trees bisa ditambahkan di sini.
 
-# Fungsi untuk halaman Conclusion
+# Halaman K-Means
 def kmeans_page():
-    st.title("Clustering Curah Hujan dengan menggunakan Metode K-Means")
-    st.write("Halaman ini implementasi dari Hasil Clustering Curah Hujan dengan K-Means")
-    st.write("""
-        - **Kesimpulan:** Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
-        - **Tindak Lanjut:** Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
-    """)
+    st.title("Clustering Curah Hujan dengan K-Means")
+    st.write("Halaman ini berisi implementasi clustering data curah hujan dengan K-Means.")
+    # Implementasi K-Means bisa ditambahkan di sini.
 
 # Fungsi untuk halaman Home
 def home():
@@ -128,20 +119,6 @@ def home():
         - **Output:** Prediksi cuaca atau rekomendasi tindakan untuk sektor pertanian.
     """)
 
-# Menangani halaman berdasarkan tombol yang dipilih di Home
-if "page" in st.session_state:
-    page = st.session_state.page
-    if page == "ARIMA":
-        arima_page()
-    elif page == "CNN":
-        cnn_page()
-    elif page == "Decision Trees":
-        decision_trees_page()
-    elif page == "K-Means":
-        kmeans_page()
-else:
-    st.session_state.page = "Home"
-
 # Sidebar Menu
 st.sidebar.title("Main Menu")
 menu = st.sidebar.radio(
@@ -154,12 +131,33 @@ menu = st.sidebar.radio(
     )
 )
 
-# Menentukan menu yang dipilih
+# Menentukan halaman berdasarkan menu atau tombol
+if "page" not in st.session_state:
+    st.session_state.page = "Home"
+
 if menu == "Home":
-    home()
+    st.session_state.page = "Home"
 elif menu == "Insight":
-    insight()
+    st.session_state.page = "Insight"
 elif menu == "Decision":
-    decision()
+    st.session_state.page = "Decision"
 elif menu == "Conclusion":
+    st.session_state.page = "Conclusion"
+
+# Logika untuk memanggil halaman berdasarkan `st.session_state.page`
+if st.session_state.page == "Home":
+    home()
+elif st.session_state.page == "Insight":
+    insight()
+elif st.session_state.page == "Decision":
+    decision()
+elif st.session_state.page == "Conclusion":
     conclusion()
+elif st.session_state.page == "ARIMA":
+    arima_page()
+elif st.session_state.page == "CNN":
+    cnn_page()
+elif st.session_state.page == "Decision Trees":
+    decision_trees_page()
+elif st.session_state.page == "K-Means":
+    kmeans_page()
