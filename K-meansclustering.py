@@ -1,115 +1,47 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.metrics import davies_bouldin_score, silhouette_score
-import folium
-from folium.plugins import HeatMap
 
-# Judul Aplikasi
-st.title('Aplikasi Visualisasi Clustering K-Means')
+# Fungsi untuk setiap menu
+def home():
+    st.title("Home")
+    st.write("Selamat datang di aplikasi Streamlit!")
+    st.write("Aplikasi ini memiliki tiga menu utama: **Home**, **Tasks**, dan **Settings**.")
+    st.image(
+        "https://streamlit.io/images/brand/streamlit-logo-primary-colormark-darktext.png",
+        caption="Streamlit Logo",
+        use_column_width=True,
+    )
 
-# Upload file
-uploaded_file = st.file_uploader("Upload file dataset", type=["xlsx", "csv"])
-
-if uploaded_file is not None:
-    # Membaca file yang diupload
-    df = pd.read_excel(uploaded_file)
-    st.write("Dataframe yang diupload:")
-    st.write(df.head())
+def tasks():
+    st.title("Tasks")
+    st.write("Berikut adalah daftar tugas Anda:")
     
-    # EDA: Info Dataset
-    if st.button('Tampilkan Info Dataset'):
-        st.write(df.info())
+    tasks = ["Tugas 1: Belajar Streamlit", "Tugas 2: Membuat aplikasi", "Tugas 3: Menyelesaikan proyek"]
+    for i, task in enumerate(tasks, 1):
+        st.checkbox(f"{i}. {task}")
     
-    # Missing values
-    if st.button('Tampilkan Missing Values'):
-        missing_data = df.isnull().sum()
-        st.write(missing_data)
+    st.text_area("Catatan Tambahan", "Tulis catatan untuk tugas-tugas Anda di sini...")
 
-    # Visualisasi Missing Value
-    if st.button('Visualisasi Missing Values'):
-        column_with_nan = df.columns[df.isnull().any()]
-        column_name = []
-        percent_nan = []
+def settings():
+    st.title("Settings")
+    st.write("Atur preferensi Anda:")
+    
+    username = st.text_input("Nama Pengguna", "Guest")
+    theme = st.selectbox("Pilih Tema", ["Light", "Dark", "System Default"])
+    notifications = st.checkbox("Aktifkan Notifikasi", value=True)
+    
+    st.write("**Ringkasan Pengaturan:**")
+    st.write(f"- Nama Pengguna: {username}")
+    st.write(f"- Tema: {theme}")
+    st.write(f"- Notifikasi Aktif: {'Ya' if notifications else 'Tidak'}")
 
-        for i in column_with_nan:
-            column_name.append(i)
-            percent_nan.append(round(df[i].isnull().sum() * 100 / len(df), 2))
+# Membuat Sidebar
+st.sidebar.title("Main Menu")
+menu = st.sidebar.radio("Pilih Menu:", ("Home", "Tasks", "Settings"))
 
-        tab = pd.DataFrame(column_name, columns=["Column"])
-        tab["Percent_NaN"] = percent_nan
-        tab.sort_values(by=["Percent_NaN"], ascending=False, inplace=True)
-
-        sns.set(rc={"figure.figsize": (8, 4)})
-        sns.set_style("whitegrid")
-        p = sns.barplot(x="Percent_NaN", y="Column", data=tab, edgecolor="black", color="deepskyblue")
-        p.set_title("Persentase Missing Value per Kolom", fontsize=20)
-        p.set_xlabel("Persentase Missing Value", fontsize=15)
-        st.pyplot()
-
-    # Preprocessing Data (Scaling)
-    if st.button('Tampilkan Preprocessing Data'):
-        df_clean = df.copy()
-
-        # Pilih hanya kolom numerik untuk scaling
-        numerical_features = df_clean.select_dtypes(include=['float64', 'int64']).columns
-
-        # Lakukan scaling hanya pada kolom numerik
-        scaler = StandardScaler()
-        df_clean[numerical_features] = scaler.fit_transform(df_clean[numerical_features])
-
-        # Tampilkan data yang sudah di-preprocess
-        st.write(df_clean.head())
-
-    # Model K-means Clustering
-    if st.button('Tampilkan Hasil Clustering K-Means'):
-        df_clean = df.copy()
-
-        # Pilih hanya kolom numerik untuk clustering
-        numerical_features = df_clean.select_dtypes(include=['float64', 'int64']).columns
-
-        kmeans = KMeans(n_clusters=3, random_state=42)
-        df_clean['cluster'] = kmeans.fit_predict(df_clean[numerical_features])
-        st.write(df_clean.head())
-
-        # Evaluasi Model
-        db_score = davies_bouldin_score(df_clean[numerical_features], df_clean['cluster'])
-        sil_score = silhouette_score(df_clean[numerical_features], df_clean['cluster'])
-        st.write(f"Davies-Bouldin Score: {db_score:.5f}")
-        st.write(f"Silhouette Score: {sil_score:.5f}")
-
-        # Visualisasi Cluster
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.scatterplot(x='Tavg', y='RH_avg', hue='cluster', data=df_clean, palette="Set1", ax=ax)
-        ax.set_title("Clustering K-Means (Tavg vs RH_avg)")
-        st.pyplot(fig)
-
-    # Menampilkan hasil visualisasi Heatmap Korelasi
-    if st.button('Tampilkan Heatmap Korelasi'):
-        df_num = df.select_dtypes(exclude=["object"])
-        corr = df_num.corr()
-        plt.figure(figsize=(8,6))
-        sns.heatmap(corr, annot=True, cmap='coolwarm', fmt='.2f')
-        plt.title('Correlation Matrix')
-        st.pyplot()
-
-    # Peta Heatmap (jika data memiliki kolom latitude dan longitude)
-    if st.button('Tampilkan Peta Heatmap'):
-        if 'latitude' in df.columns and 'longitude' in df.columns:
-            # Menyiapkan peta
-            map_center = [df['latitude'].mean(), df['longitude'].mean()]
-            folium_map = folium.Map(location=map_center, zoom_start=12)
-
-            # Menambahkan heatmap
-            heat_data = [[row['latitude'], row['longitude']] for index, row in df.iterrows()]
-            HeatMap(heat_data).add_to(folium_map)
-
-            # Simpan peta sebagai file HTML dan tampilkan
-            folium_map.save("heatmap.html")
-            st.components.v1.html(open("heatmap.html", "r").read(), height=600)
-        else:
-            st.write("Data tidak memiliki kolom latitude dan longitude. Tidak dapat menampilkan peta.")
+# Logika navigasi menu
+if menu == "Home":
+    home()
+elif menu == "Tasks":
+    tasks()
+elif menu == "Settings":
+    settings()
