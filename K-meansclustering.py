@@ -10,7 +10,7 @@ import tensorflow as tf
 # Fungsi untuk setiap menu
 def home():
     st.title("Home")
-    st.write("Selamat datang di aplikasi prediksi dan analisis curah hujan!")    
+    st.write("Selamat datang di aplikasi Analisis Curah Hujan Menggunakan Pendekatan Big Data untuk Mendukung Pertanian!")    
     # Menampilkan gambar menggunakan HTML
     st.markdown(
         """
