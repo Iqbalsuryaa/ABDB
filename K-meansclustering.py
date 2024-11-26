@@ -12,8 +12,8 @@ def home():
     st.title("Home")
     st.write("Selamat datang di aplikasi prediksi dan analisis curah hujan!")
     st.image(
-        "https://upload.wikimedia.org/wikipedia/commons/7/7e/Rainy_weather.jpg",
-        caption="Cuaca Hujan",
+        "https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/hider.png",
+        caption="Gambar Hider",
         use_column_width=True,
     )
 
