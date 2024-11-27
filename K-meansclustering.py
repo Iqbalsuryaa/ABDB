@@ -28,13 +28,16 @@ if uploaded_file is not None:
     if 'cluster' in df_result.columns:
         st.subheader("Evaluasi K-Means Clustering")
         
-        # Menangani nilai NaN dengan mengimputasi menggunakan rata-rata
+        # Menangani nilai NaN dengan mengimputasi menggunakan rata-rata untuk kolom numerik
+        numeric_columns = df_result.select_dtypes(include=[np.number]).columns.tolist()
+        numeric_columns.remove('cluster')  # Pastikan kolom 'cluster' tidak terimputasi
+        
         imputer = SimpleImputer(strategy='mean')
-        df_result_imputed = imputer.fit_transform(df_result.drop(columns='cluster'))
+        df_result[numeric_columns] = imputer.fit_transform(df_result[numeric_columns])
         
         # Menggunakan StandardScaler untuk menormalkan data
         scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(df_result_imputed)
+        X_scaled = scaler.fit_transform(df_result[numeric_columns])
         
         # Davies-Bouldin Index dan Silhouette Score
         try:
