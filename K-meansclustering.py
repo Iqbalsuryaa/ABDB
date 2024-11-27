@@ -122,13 +122,14 @@ if menu == "Clustering Dengan Metode K-Means":
     st.subheader("Penjelasan Cluster Berdasarkan Curah Hujan")
     st.markdown(""" 
     1. **Cluster 0 (Curah Hujan Tinggi - Musim Hujan):**
-       - Daerah dengan intensitas curah hujan tinggi.
-       - Sering terjadi pada musim hujan dengan curah hujan di atas rata-rata.
+       - Daerah dengan intensitas curah hujan tinggi, cluster ini menunjukkan daerah-daerah yang mengalami curah hujan tinggi. Biasanya cluster ini mewakili wilayah yang terletak di musim hujan atau daerah dengan iklim tropis yang sering mengalami hujan deras.
+       - Ciri-ciri: Area yang termasuk dalam cluster ini akan menunjukkan intensitas curah hujan yang lebih tinggi (lebih dari rata-rata), yang biasanya terkait dengan musim hujan, sering terjadi pada musim hujan dengan curah hujan di atas rata-rata.
     2. **Cluster 2 (Curah Hujan Sedang - Cuaca Normal):**
-       - Daerah dengan curah hujan sedang, biasanya mencerminkan cuaca normal atau transisi musim.
+       - Daerah dengan curah hujan sedang, biasanya mencerminkan cuaca normal atau transisi musim, cluster ini berisi daerah-daerah dengan curah hujan sedang, yang biasanya terjadi pada cuaca normal atau musim transisi antara musim hujan dan kemarau.
+       - Ciri-ciri: Wilayah yang termasuk dalam cluster ini memiliki tingkat curah hujan yang cukup stabil, tidak terlalu tinggi dan juga tidak terlalu rendah, mencerminkan cuaca yang tidak ekstrem.
     3. **Cluster 1 (Curah Hujan Rendah - Musim Kering):**
-       - Daerah dengan intensitas curah hujan rendah.
-       - Sering terjadi pada musim kemarau atau di wilayah yang lebih kering.
+       - Daerah dengan intensitas curah hujan rendah, cluster ini mencakup daerah-daerah yang mengalami curah hujan rendah, yang biasanya terjadi pada musim kemarau atau wilayah yang lebih kering.
+       - Ciri-ciri: Area yang termasuk dalam cluster ini cenderung mengalami sedikit hujan atau bahkan tidak ada hujan sama sekali dalam periode tertentu, mencerminkan musim kering atau iklim yang lebih kering, sering terjadi pada musim kemarau atau di wilayah yang lebih kering.
     """)
 
     # Heatmap
@@ -139,7 +140,8 @@ if menu == "Clustering Dengan Metode K-Means":
     # Penjelasan Warna pada Heatmap
     st.markdown(""" 
     ### Penjelasan Warna pada Heatmap:
-    - **Merah Tua / Oranye**: Daerah dengan curah hujan tinggi, biasanya terjadi pada musim hujan atau daerah tropis dengan intensitas hujan tinggi.
-    - **Kuning / Hijau Muda**: Daerah dengan curah hujan sedang, mencerminkan cuaca normal atau transisi musim.
-    - **Biru Tua / Biru Muda**: Daerah dengan curah hujan rendah, sering terjadi pada musim kemarau atau wilayah kering.
+    - **Merah Tua / Oranye**: Menunjukkan daerah dengan curah hujan yang tinggi, biasanya terjadi pada musim hujan atau daerah tropis dengan intensitas hujan tinggi, Lokasi-lokasi yang lebih intens curah hujannya akan tampak dengan warna yang lebih gelap, daerah dengan intensitas curah hujan tinggi sering kali berwarna merah tua atau oranye terang, menunjukkan curah hujan yang sangat tinggi.
+    - **Kuning / Hijau Muda**: Daerah dengan curah hujan sedang, mencerminkan cuaca normal atau transisi musim, Warna-warna seperti kuning atau hijau muda menandakan intensitas hujan yang lebih rendah dibandingkan dengan daerah merah.
+    - **Biru Tua / Biru Muda**: Daerah dengan curah hujan rendah, sering terjadi pada musim kemarau atau wilayah kering dan Ini biasanya mewakili lokasi-lokasi yang memiliki sedikit atau bahkan tidak ada hujan (seperti musim kemarau). Warna biru gelap atau biru muda ini menandakan intensitas hujan yang sangat rendah.
+
     """)
