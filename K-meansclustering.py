@@ -1,86 +1,120 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.cluster import KMeans
-from sklearn.metrics import davies_bouldin_score, silhouette_score
-import folium
-from folium.plugins import HeatMap
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer
+import matplotlib.pyplot as plt
+from geopy.geocoders import Nominatim
+import time
+from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 
-# Judul aplikasi
-st.title("Aplikasi Clustering Curah Hujan 2020-2024")
+# Fungsi untuk mendeteksi outliers menggunakan metode IQR
+def iqr_outliers(df):
+    out = []
+    numeric_df = df.select_dtypes(include=['float64', 'int64'])
+    q1 = numeric_df.quantile(0.25)
+    q3 = numeric_df.quantile(0.75)
+    iqr = q3 - q1
+    Lower_tail = q1 - 1.5 * iqr
+    Upper_tail = q3 + 1.5 * iqr
+    for column in numeric_df.columns:
+        for i in numeric_df[column]:
+            if i > Upper_tail[column] or i < Lower_tail[column]:
+                out.append(i)
+    return out
 
-# Upload file CSV hasil clustering
-uploaded_file = st.file_uploader("Upload Hasil Cluster CSV", type=["csv"])
+# Fungsi untuk Winsorization
+def winsorize(df_clean, cols, limits):
+    for col in cols:
+        df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
+        q1, q3 = df_clean[col].dropna().quantile([0.25, 0.75])
+        iqr_val = q3 - q1
+        lower_bound = q1 - limits * iqr_val
+        upper_bound = q3 + limits * iqr_val
+        df_clean[col] = np.clip(df_clean[col], lower_bound, upper_bound)
+    return df_clean
+
+# Fungsi geocoding untuk mendapatkan koordinat
+def get_coordinates(kab, attempts=5, timeout=10):
+    geolocator = Nominatim(user_agent="test_geo")
+    for attempt in range(attempts):
+        try:
+            location = geolocator.geocode(f"{kab}", timeout=timeout)
+            if location:
+                return location.latitude, location.longitude
+            else:
+                return None, None
+        except (GeocoderTimedOut, GeocoderServiceError) as e:
+            if attempt < attempts - 1:
+                time.sleep(1)
+                continue
+            else:
+                return None, None
+
+# Main Streamlit App
+st.title("Analisis Curah Hujan dan Data Cuaca")
+
+# Upload file
+uploaded_file = st.file_uploader("Pilih file Excel", type=["xlsx"])
 
 if uploaded_file is not None:
-    # Membaca data dari file yang diupload
-    df_result = pd.read_csv(uploaded_file)
+    df = pd.read_excel(uploaded_file)
     
-    # Menampilkan data hasil preprocessing
-    st.subheader("Data Hasil Preprocessing")
-    st.write(df_result.head())
+    # Tampilkan informasi umum tentang dataset
+    st.subheader("Informasi Data")
+    st.write(df.info())
     
-    # Pastikan kolom 'cluster' ada di dataframe
-    if 'cluster' in df_result.columns:
-        st.subheader("Evaluasi K-Means Clustering")
-        
-        # Menangani nilai NaN dengan mengimputasi menggunakan rata-rata untuk kolom numerik
-        numeric_columns = df_result.select_dtypes(include=[np.number]).columns.tolist()
-        numeric_columns.remove('cluster')  # Pastikan kolom 'cluster' tidak terimputasi
-        
-        # Inisialisasi imputer
-        imputer = SimpleImputer(strategy='mean')
-        
-        # Mengimputasi data
-        df_result[numeric_columns] = imputer.fit_transform(df_result[numeric_columns])
-        
-        # Menggunakan StandardScaler untuk menormalkan data
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(df_result[numeric_columns])
-        
-        # Davies-Bouldin Index dan Silhouette Score
-        try:
-            kmeans_dbi = davies_bouldin_score(X_scaled, df_result['cluster'])
-            kmeans_sil = silhouette_score(X_scaled, df_result['cluster'])
-            st.write(f"**Davies-Bouldin Index**: {kmeans_dbi:.5f}")
-            st.write(f"**Silhouette Score**: {kmeans_sil:.5f}")
-        except Exception as e:
-            st.write(f"Terjadi kesalahan dalam perhitungan skor: {str(e)}")
-        
-        # Descriptive statistics of clusters
-        st.subheader("Descriptive Statistics per Cluster")
-        for cluster in df_result['cluster'].unique():
-            st.write(f"Cluster {cluster}:")
-            st.write(df_result[df_result['cluster'] == cluster].describe())
-        
-        # Plotting Elbow Method
-        st.subheader("Metode Elbow K-Means")
-        range_n_clusters = list(range(1, 11))
-        wcss = []
-        for n_clusters in range_n_clusters:
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-            kmeans.fit(X_scaled)  # Gunakan data yang sudah diskalakan
-            wcss.append(kmeans.inertia_)
-        
-        plt.figure(figsize=(8, 6))
-        plt.plot(range_n_clusters, wcss, marker='*', markersize=10, markerfacecolor='red')
-        plt.title('Metode Elbow K-Means')
-        plt.xlabel('Jumlah Cluster')
-        plt.ylabel('WCSS')
-        st.pyplot()
+    # Tampilkan dimensi dataset
+    st.write(f"Dimensi Data: {df.shape}")
+    
+    # Mengecek missing values
+    st.subheader("Missing Values")
+    missing_values = df.isnull().sum()
+    st.write(missing_values)
+    
+    # Visualisasi missing values dengan barplot
+    st.subheader("Visualisasi Missing Values")
+    missing_data = pd.DataFrame({'Column': missing_values.index, 'Percent_NaN': missing_values.values})
+    missing_data['Percent_NaN'] = missing_data['Percent_NaN'] * 100 / len(df)
+    sns.set_style("whitegrid")
+    fig, ax = plt.subplots(figsize=(8, 4))
+    sns.barplot(x='Percent_NaN', y='Column', data=missing_data, edgecolor="black", color="deepskyblue", ax=ax)
+    ax.set_title("Persentase Missing Values per Kolom")
+    st.pyplot(fig)
+    
+    # Deteksi outliers dengan IQR
+    st.subheader("Deteksi Outliers dengan IQR")
+    outliers = iqr_outliers(df)
+    st.write(f"Outliers: {outliers}")
+    
+    # Boxplot sebelum Winsorization
+    st.subheader("Boxplot Sebelum Winsorization")
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.boxplot(data=df.select_dtypes(include=['float64', 'int64']), ax=ax)
+    ax.set_title("Boxplot Sebelum Winsorization")
+    st.pyplot(fig)
+    
+    # Winsorization untuk menangani outliers
+    num_col = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car']
+    df_clean2 = winsorize(df.copy(), num_col, 1.5)
+    
+    # Boxplot setelah Winsorization
+    st.subheader("Boxplot Setelah Winsorization")
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.boxplot(data=df_clean2[num_col], ax=ax)
+    ax.set_title("Boxplot Setelah Winsorization")
+    st.pyplot(fig)
+    
+    # Geocoding untuk mendapatkan latitude dan longitude
+    st.subheader("Geocoding Kota")
+    df_clean2['Latitude'] = None
+    df_clean2['Longitude'] = None
+    
+    for index, row in df_clean2.iterrows():
+        kab = row['KOTA']
+        latitude, longitude = get_coordinates(kab)
+        df_clean2.at[index, 'Latitude'] = latitude
+        df_clean2.at[index, 'Longitude'] = longitude
+    
+    # Tampilkan hasil geocoding
+    st.write(df_clean2[['KOTA', 'Latitude', 'Longitude']].head())
 
-        # Map: Heatmap Curah Hujan
-        st.subheader("Peta Heatmap Curah Hujan")
-        if 'Latitude' in df_result.columns and 'Longitude' in df_result.columns:
-            m = folium.Map(location=[df_result['Latitude'].mean(), df_result['Longitude'].mean()], zoom_start=6)
-            heat_data = [[row['Latitude'], row['Longitude'], row['RR']] for index, row in df_result.iterrows()]
-            HeatMap(heat_data).add_to(m)
-            st.write(m)
-        else:
-            st.write("Data Latitude dan Longitude tidak ditemukan.")
-    else:
-        st.write("File yang diupload tidak mengandung kolom 'cluster'.")
