@@ -1,24 +1,18 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler, LabelEncoder
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import LabelEncoder
 import folium
 from folium import plugins
-from io import BytesIO
 
-# Fungsi untuk preprocessing data
-def preprocess_data(df):
-    numeric_cols = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car']
-    scaler = StandardScaler()
-    df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
-    le = LabelEncoder()
-    df['KOTA'] = le.fit_transform(df['KOTA'])
-    return df
+# Fungsi untuk memuat data
+@st.cache_data
+def load_data():
+    return pd.read_csv('Hasilcluster_result.csv')
 
-# Fungsi untuk visualisasi elbow method
+# Fungsi untuk menampilkan metode elbow
 def elbow_method(data):
     wcss = []
     for n_clusters in range(1, 11):
@@ -26,96 +20,76 @@ def elbow_method(data):
         kmeans.fit(data)
         wcss.append(kmeans.inertia_)
     plt.figure(figsize=(8, 6))
-    plt.plot(range(1, 11), wcss, marker='o', markersize=8, color='b')
+    plt.plot(range(1, 11), wcss, marker='o', color='b')
     plt.title('Metode Elbow K-Means')
     plt.xlabel('Jumlah Cluster')
     plt.ylabel('WCSS')
     st.pyplot(plt)
 
-# Fungsi untuk clustering dan visualisasi hasil cluster
-def perform_clustering(data, n_clusters):
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-    data['cluster'] = kmeans.fit_predict(data)
-    return data
-
-# Fungsi untuk visualisasi distribusi cluster
-def plot_cluster_distribution(data):
-    cluster_summary = data.groupby(['cluster', 'KOTA']).size().reset_index(name='Count')
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.barplot(x='KOTA', y='Count', hue='cluster', data=cluster_summary, ax=ax, palette='viridis')
-    plt.title('Distribusi Cluster per Kota')
-    plt.xlabel('Kota')
-    plt.ylabel('Jumlah')
-    st.pyplot(plt)
-
-# Fungsi untuk heatmap
-def plot_heatmap(data):
-    map_center = [data['Latitude'].mean(), data['Longitude'].mean()]
-    heatmap_map = folium.Map(location=map_center, zoom_start=6)
+# Fungsi untuk menampilkan heatmap
+def create_heatmap(data):
+    map_heatmap = folium.Map(
+        location=[data['Latitude'].mean(), data['Longitude'].mean()],
+        zoom_start=6
+    )
     features = {
         'Tavg': data[['Latitude', 'Longitude', 'Tavg']],
         'RH_avg': data[['Latitude', 'Longitude', 'RH_avg']],
         'RR': data[['Latitude', 'Longitude', 'RR']],
-        'ss': data[['Latitude', 'Longitude', 'ss']],
+        'ss': data[['Latitude', 'Longitude', 'ss']]
     }
     for feature_name, feature_data in features.items():
-        heatmap_layer = plugins.HeatMap(
-            feature_data.dropna().values.tolist(), 
-            radius=15, 
-            name=feature_name
-        )
-        heatmap_map.add_child(heatmap_layer)
-    heatmap_map.add_child(folium.LayerControl())
-    return heatmap_map
+        heatmap_data = feature_data.dropna().values.tolist()
+        heatmap_layer = plugins.HeatMap(heatmap_data, radius=15)
+        folium.FeatureGroup(name=feature_name).add_child(heatmap_layer).add_to(map_heatmap)
+    folium.LayerControl().add_to(map_heatmap)
+    return map_heatmap
 
-# Streamlit app layout
-st.title("Aplikasi Clustering K-Means untuk Data Curah Hujan")
-st.write("Unggah dataset curah hujan untuk melakukan analisis clustering menggunakan metode K-Means.")
+# Streamlit Layout
+st.title("Aplikasi Clustering K-Means untuk Curah Hujan")
+st.sidebar.header("Pengaturan")
+menu = st.sidebar.radio("Pilih Menu", ["Metode Elbow", "Hasil Clustering", "Distribusi Cluster", "Heatmap"])
 
-uploaded_file = st.file_uploader("Unggah File CSV Anda", type=["csv"])
-if uploaded_file is not None:
-    # Load dataset
-    df = pd.read_csv(uploaded_file)
-    st.write("Dataset berhasil diunggah:")
-    st.write(df.head())
-    
-    # Preprocessing
-    st.subheader("Preprocessing Data")
-    processed_data = preprocess_data(df.copy())
-    st.write("Data setelah preprocessing:")
-    st.write(processed_data.head())
-    
-    # Elbow method
-    st.subheader("Metode Elbow untuk Menentukan Jumlah Cluster")
-    elbow_method(processed_data.drop(columns=['KOTA', 'Latitude', 'Longitude']))
-    
-    # Clustering
+# Load Data
+df = load_data()
+
+# Preprocessing Data
+cleaned_kota = df.drop(columns=['Tanggal', 'Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car'])
+encoder = LabelEncoder()
+cleaned_kota['KOTA'] = encoder.fit_transform(df['KOTA'])
+
+# Metode Elbow
+if menu == "Metode Elbow":
+    st.subheader("Metode Elbow")
+    elbow_method(cleaned_kota)
+
+# Hasil Clustering
+elif menu == "Hasil Clustering":
     st.subheader("Hasil Clustering K-Means")
-    n_clusters = st.slider("Pilih jumlah cluster:", 2, 10, 3)
-    clustered_data = perform_clustering(processed_data.copy(), n_clusters)
-    st.write("Data setelah clustering:")
-    st.write(clustered_data.head())
-    
-    # Visualisasi distribusi cluster
-    st.subheader("Distribusi Cluster per Kota")
-    plot_cluster_distribution(clustered_data)
-    
-    # Heatmap
-    st.subheader("Visualisasi Heatmap")
-    heatmap_map = plot_heatmap(clustered_data)
-    st.write("Heatmap Data Curah Hujan")
-    st.map(clustered_data[['Latitude', 'Longitude']])
+    rename = {0: 2, 1: 0, 2: 1}
+    df['cluster'] = df['cluster'].replace(rename)
+    st.dataframe(df.head())
 
-    # Simpan hasil
-    st.subheader("Simpan Hasil Clustering")
-    buffer = BytesIO()
-    clustered_data.to_csv(buffer, index=False)
-    buffer.seek(0)
-    st.download_button(
-        label="Download hasil clustering",
-        data=buffer,
-        file_name="hasil_clustering.csv",
-        mime="text/csv"
+    st.subheader("Statistik Deskriptif per Cluster")
+    col_drop = ['Tanggal', 'ddd_car', 'Latitude', 'Longitude', 'KOTA']
+    desc_stats = (
+        df.drop(col_drop, axis=1)
+        .groupby('cluster')
+        .aggregate(['mean', 'std', 'min', 'median', 'max'])
+        .transpose()
     )
-else:
-    st.write("Silakan unggah file dataset Anda untuk memulai analisis.")
+    st.dataframe(desc_stats)
+
+# Distribusi Cluster per Kabupaten
+elif menu == "Distribusi Cluster":
+    st.subheader("Distribusi Cluster per Kabupaten")
+    kota_cluster = df.groupby(['cluster', 'KOTA']).size().reset_index(name='Count')
+    sns.barplot(data=kota_cluster, x='KOTA', y='Count', hue='cluster', palette='viridis')
+    plt.xticks(rotation=90)
+    st.pyplot(plt)
+
+# Heatmap
+elif menu == "Heatmap":
+    st.subheader("Heatmap")
+    heatmap = create_heatmap(df)
+    st.markdown(folium.Figure().add_child(heatmap).render(), unsafe_allow_html=True)
