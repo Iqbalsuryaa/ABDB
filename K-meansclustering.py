@@ -5,11 +5,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.cluster import KMeans
 from sklearn.metrics import davies_bouldin_score, silhouette_score
-import joblib
 import folium
 from folium.plugins import HeatMap
-import geopandas as gpd
 from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
 
 # Judul aplikasi
 st.title("Aplikasi Clustering Curah Hujan 2020-2024")
@@ -29,15 +28,13 @@ if uploaded_file is not None:
     if 'cluster' in df_result.columns:
         st.subheader("Evaluasi K-Means Clustering")
         
-        # Memilih hanya kolom numerik
-        numeric_columns = df_result.select_dtypes(include=[np.number]).columns.tolist()
-        
-        # Hapus kolom 'cluster' dari data yang digunakan untuk scaler
-        numeric_columns.remove('cluster')
+        # Menangani nilai NaN dengan mengimputasi menggunakan rata-rata
+        imputer = SimpleImputer(strategy='mean')
+        df_result_imputed = imputer.fit_transform(df_result.drop(columns='cluster'))
         
         # Menggunakan StandardScaler untuk menormalkan data
         scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(df_result[numeric_columns])  # Hanya menggunakan kolom numerik
+        X_scaled = scaler.fit_transform(df_result_imputed)
         
         # Davies-Bouldin Index dan Silhouette Score
         try:
