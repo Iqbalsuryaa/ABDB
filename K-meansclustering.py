@@ -29,9 +29,15 @@ if uploaded_file is not None:
     if 'cluster' in df_result.columns:
         st.subheader("Evaluasi K-Means Clustering")
         
-        # Menggunakan StandardScaler untuk menormalkan data (jika diperlukan)
+        # Memilih hanya kolom numerik
+        numeric_columns = df_result.select_dtypes(include=[np.number]).columns.tolist()
+        
+        # Hapus kolom 'cluster' dari data yang digunakan untuk scaler
+        numeric_columns.remove('cluster')
+        
+        # Menggunakan StandardScaler untuk menormalkan data
         scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(df_result.drop(columns='cluster'))
+        X_scaled = scaler.fit_transform(df_result[numeric_columns])  # Hanya menggunakan kolom numerik
         
         # Davies-Bouldin Index dan Silhouette Score
         try:
