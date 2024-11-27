@@ -10,3 +10,4 @@ streamlit-folium
 seaborn
 geopandas
 joblib
+geopy
