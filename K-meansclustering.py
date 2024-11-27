@@ -1,112 +1,67 @@
 import streamlit as st
+import pandas as pd
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 
-# Fungsi untuk halaman Insight
-def insight_content():
-    st.write("Halaman ini menampilkan insight dari data yang telah dianalisis.")
-    st.write("""
-        - *Analisis Tren:* Curah hujan cenderung meningkat di musim penghujan.
-        - *Pola Cuaca:* Suhu dan kelembaban memiliki korelasi signifikan terhadap curah hujan.
-        - *Rekomendasi Data:* Data curah hujan dan cuaca perlu diupdate secara berkala untuk akurasi lebih baik.
-    """)
+# Judul Aplikasi
+st.title("Clustering Curah Hujan dengan Metode K-Means")
 
-# Fungsi untuk halaman Decision
-def decision_content():
-    st.write("Halaman ini memberikan keputusan berdasarkan analisis data.")
-    st.write("""
-        - *Keputusan:* Berdasarkan prediksi curah hujan, disarankan menanam padi pada bulan Desember.
-        - *Konteks:* Wilayah dengan kelembaban di atas 80% dan curah hujan tinggi cocok untuk pertanian basah.
-    """)
+# Upload File CSV
+uploaded_file = st.file_uploader("Upload file CSV dataset", type=["csv"])
 
-# Fungsi untuk halaman Conclusion
-def conclusion_content():
-    st.write("Halaman ini memberikan kesimpulan dari analisis data.")
-    st.write("""
-        - *Kesimpulan:* Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
-        - *Tindak Lanjut:* Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
-    """)
+if uploaded_file is not None:
+    # Membaca dataset
+    data = pd.read_csv(uploaded_file)
 
-# Fungsi untuk halaman Home
-def home():
-    # Menampilkan Header/Banner
-    st.markdown(
-        """
-        <div style="text-align: center;">
-            <img src="https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/hider.png" alt="Header Banner" width="800">
-        </div>
-        """,
-        unsafe_allow_html=True,
+    st.write("Data yang diunggah:")
+    st.dataframe(data.head())
+
+    # Pilih kolom untuk clustering
+    st.sidebar.header("Pengaturan Clustering")
+    selected_columns = st.sidebar.multiselect(
+        "Pilih kolom untuk clustering (minimal 2 kolom):",
+        data.columns
     )
 
-    # Judul dan Deskripsi
-    st.title("Home")
-    st.write("Selamat datang di aplikasi Analisis Curah Hujan Menggunakan Pendekatan Big Data untuk Mendukung Pertanian!")    
+    if len(selected_columns) >= 2:
+        clustering_data = data[selected_columns]
 
-    # Menampilkan Abstrak
-    st.subheader("Abstrak")
-    st.write("""
-        Aplikasi ini dirancang untuk memprediksi curah hujan berdasarkan data cuaca 
-        dan analisis citra awan. Berbagai metode seperti ARIMA, CNN, Decision Trees, 
-        dan K-Means digunakan untuk mendukung analisis ini. Tujuannya adalah 
-        untuk membantu sektor pertanian dan masyarakat dalam memahami pola cuaca 
-        yang lebih baik.
-    """)
+        # Normalisasi data
+        scaler = StandardScaler()
+        scaled_data = scaler.fit_transform(clustering_data)
 
-    # Menampilkan Gambar Arsitektur Sistem
-    st.subheader("Arsitektur Sistem")
-    st.markdown(
-        """
-        <img src="https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/arsitektur sistem70.drawio.png" alt="Gambar Arsi" width="700">
-        """,
-        unsafe_allow_html=True,
-    )
+        # Pilih jumlah kluster
+        num_clusters = st.sidebar.slider("Pilih jumlah kluster:", 2, 10, 3)
 
-    # Penjelasan Arsitektur Sistem
-    st.write("""
-        Arsitektur sistem ini menggambarkan alur kerja aplikasi dari pengambilan data,
-        preprocessing, hingga analisis. Data curah hujan diolah menggunakan beberapa
-        metode untuk menghasilkan prediksi yang akurat. Komponen utama meliputi:
-        - *Pengumpulan Data:* Data cuaca harian dari BMKG atau citra awan.
-        - *Preprocessing:* Normalisasi data, augmentasi gambar, dan transformasi fitur.
-        - *Model Analitik:* Penggunaan algoritma ARIMA untuk data waktu, CNN untuk klasifikasi gambar,
-          dan clustering dengan K-Means untuk pengelompokan data.
-        - *Output:* Prediksi cuaca atau rekomendasi tindakan untuk sektor pertanian.
-    """)
+        # K-Means Clustering
+        kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+        clusters = kmeans.fit_predict(scaled_data)
+        data['Cluster'] = clusters
 
-    # Menampilkan Insight, Decision, dan Conclusion
-    st.subheader("Insight")
-    insight_content()
+        st.write("Hasil Clustering:")
+        st.dataframe(data)
 
-    st.subheader("Decision")
-    decision_content()
+        # Visualisasi
+        if len(selected_columns) == 2:
+            fig, ax = plt.subplots()
+            scatter = ax.scatter(
+                clustering_data[selected_columns[0]],
+                clustering_data[selected_columns[1]],
+                c=clusters,
+                cmap='viridis'
+            )
+            ax.set_xlabel(selected_columns[0])
+            ax.set_ylabel(selected_columns[1])
+            plt.colorbar(scatter)
+            st.pyplot(fig)
+        else:
+            st.write("Visualisasi hanya tersedia untuk 2 kolom.")
 
-    st.subheader("Conclusion")
-    conclusion_content()
-
-# Sidebar Menu
-st.sidebar.title("Main Menu")
-menu = st.sidebar.radio(
-    "Pilih Menu:",
-    (
-        "Home",
-        "Prediksi Dengan Metode ARIMA",
-        "Klasifikasi Citra Dengan Metode CNN",
-        "Klasifikasi Dengan Decision Trees",
-        "Clustering Dengan Metode K-Means",
-    )
-)
-
-# Menentukan menu yang dipilih
-if menu == "Home":
-    home()
-elif menu == "Prediksi Dengan Metode ARIMA":
-    st.title("Prediksi Curah Hujan dengan Metode ARIMA")
-    st.write("Halaman ini akan berisi implementasi prediksi curah hujan dengan ARIMA.")
-elif menu == "Klasifikasi Citra Dengan Metode CNN":
-    st.title("Klasifikasi Citra Awan Curah Hujan dengan Metode CNN")
-    st.write("Halaman ini akan berisi implementasi klasifikasi citra awan dengan CNN.")
-elif menu == "Klasifikasi Dengan Decision Trees":
-    st.title("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees")
-    st.write("Halaman ini akan berisi implementasi klasifikasi cuaca dengan Decision Trees.")
-elif menu == "Clustering Dengan Metode K-Means":
-    st.title("Clustering Curah Hujan dengan Metode K-Means")
-    st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
+        # Menampilkan centroid
+        st.write("Centroid Kluster:")
+        st.write(pd.DataFrame(kmeans.cluster_centers_, columns=selected_columns))
+    else:
+        st.warning("Pilih minimal 2 kolom untuk clustering.")
+else:
+    st.info("Unggah file CSV untuk memulai.")
