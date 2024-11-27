@@ -25,29 +25,36 @@ if uploaded_file is not None:
     st.subheader("Data Hasil Preprocessing")
     st.write(df_result.head())
     
-    # Evaluasi K-Means
+    # Pastikan kolom 'cluster' ada di dataframe
     if 'cluster' in df_result.columns:
         st.subheader("Evaluasi K-Means Clustering")
-        # Davies-Bouldin Index dan Silhouette Score
-        kmeans_dbi = davies_bouldin_score(df_result.drop(columns='cluster'), df_result['cluster'])
-        kmeans_sil = silhouette_score(df_result.drop(columns='cluster'), df_result['cluster'])
         
-        st.write(f"**Davies-Bouldin Index**: {kmeans_dbi:.5f}")
-        st.write(f"**Silhouette Score**: {kmeans_sil:.5f}")
-
+        # Menggunakan StandardScaler untuk menormalkan data (jika diperlukan)
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(df_result.drop(columns='cluster'))
+        
+        # Davies-Bouldin Index dan Silhouette Score
+        try:
+            kmeans_dbi = davies_bouldin_score(X_scaled, df_result['cluster'])
+            kmeans_sil = silhouette_score(X_scaled, df_result['cluster'])
+            st.write(f"**Davies-Bouldin Index**: {kmeans_dbi:.5f}")
+            st.write(f"**Silhouette Score**: {kmeans_sil:.5f}")
+        except Exception as e:
+            st.write(f"Terjadi kesalahan dalam perhitungan skor: {str(e)}")
+        
         # Descriptive statistics of clusters
         st.subheader("Descriptive Statistics per Cluster")
         for cluster in df_result['cluster'].unique():
             st.write(f"Cluster {cluster}:")
             st.write(df_result[df_result['cluster'] == cluster].describe())
-
+        
         # Plotting Elbow Method
         st.subheader("Metode Elbow K-Means")
         range_n_clusters = list(range(1, 11))
         wcss = []
         for n_clusters in range_n_clusters:
             kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-            kmeans.fit(df_result.drop(columns='cluster'))
+            kmeans.fit(X_scaled)  # Gunakan data yang sudah diskalakan
             wcss.append(kmeans.inertia_)
         
         plt.figure(figsize=(8, 6))
@@ -66,6 +73,5 @@ if uploaded_file is not None:
             st.write(m)
         else:
             st.write("Data Latitude dan Longitude tidak ditemukan.")
-    
     else:
         st.write("File yang diupload tidak mengandung kolom 'cluster'.")
