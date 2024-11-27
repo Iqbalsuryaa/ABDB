@@ -105,11 +105,33 @@ desc_stats = (
 st.dataframe(desc_stats)
 
 # Distribusi Cluster per Kabupaten
-st.subheader("Distribusi Cluster per Kabupaten")
-kota_cluster = df.groupby(['cluster', 'KOTA']).size().reset_index(name='Count')
-sns.barplot(data=kota_cluster, x='KOTA', y='Count', hue='cluster', palette='viridis')
-plt.xticks(rotation=90)
-st.pyplot(plt)
+elif menu == "Distribusi Cluster":
+    st.subheader("Distribusi Cluster per Kabupaten")
+    
+    # Hitung distribusi cluster per kota
+    kota_cluster = df.groupby(['cluster', 'KOTA']).size().reset_index(name='Count')
+    
+    # Membuat visualisasi barplot
+    plt.figure(figsize=(10, 6))  # Mengatur ukuran figure
+    sns.barplot(
+        data=kota_cluster, 
+        x='KOTA', 
+        y='Count', 
+        hue='cluster', 
+        palette='viridis'
+    )
+    
+    # Rotasi label pada sumbu x agar mudah dibaca
+    plt.xticks(rotation=45, ha='right', fontsize=8)
+    
+    # Menambahkan judul dan label sumbu
+    plt.title("Distribusi Cluster per Kabupaten", fontsize=14)
+    plt.xlabel("Kabupaten/Kota", fontsize=12)
+    plt.ylabel("Jumlah Observasi", fontsize=12)
+    plt.legend(title="Cluster", fontsize=10, loc='upper right')  # Letak legenda disesuaikan
+    
+    # Menampilkan diagram pada Streamlit
+    st.pyplot(plt)
 
 st.markdown("""
 ### Penjelasan Cluster Berdasarkan Curah Hujan:
