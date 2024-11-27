@@ -3,111 +3,71 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import LabelEncoder
-import folium
-from folium import plugins
+from sklearn.preprocessing import StandardScaler
 
-# Fungsi untuk membaca data dari file yang diupload
-def load_data(uploaded_file):
-    df = pd.read_csv(uploaded_file)  # Membaca file CSV
-    return df
+# Judul aplikasi
+st.title('Aplikasi Clustering Curah Hujan')
 
-# Fungsi preprocessing untuk encoding dan seleksi kolom
-def preprocess_data(df):
-    cleaned_kota = df.drop(columns=['Tanggal', 'Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car'])
-    encoder = LabelEncoder()
-    cleaned_kota['KOTA'] = encoder.fit_transform(cleaned_kota['KOTA'])
-    return cleaned_kota
-
-# Setup Streamlit
-st.title("Aplikasi Clustering Curah Hujan dengan K-Means")
-
-# Upload file
-uploaded_file = st.file_uploader("Pilih file CSV hasil clustering", type=["csv"])
+# Fitur upload file
+st.sidebar.header('Unggah File Hasil Clustering')
+uploaded_file = st.sidebar.file_uploader("Pilih file CSV", type=['csv'])
 
 if uploaded_file is not None:
-    # Membaca data
-    df = load_data(uploaded_file)
-    
-    # Preprocessing data
-    cleaned_kota = preprocess_data(df)
+    # Membaca file yang diunggah
+    df = pd.read_csv(uploaded_file)
 
-    # Menentukan jumlah cluster terbaik dengan metode elbow
-    st.subheader("Metode Elbow")
-    range_n_clusters = list(range(1, 11))
-    wcss = []
-
-    for n_clusters in range_n_clusters:
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-        kmeans.fit(cleaned_kota)
-        wcss.append(kmeans.inertia_)
-
-    # Menampilkan grafik Elbow Method
-    fig, ax = plt.subplots()
-    ax.plot(range_n_clusters, wcss, marker='*', markersize=10, markerfacecolor='red')
-    ax.set_title('Metode Elbow K-Means')
-    ax.set_xlabel('Jumlah Cluster')
-    ax.set_ylabel('WCSS')
-    st.pyplot(fig)
-
-    # Melakukan clustering dengan jumlah cluster yang dipilih (misalnya 3)
-    kmeans = KMeans(n_clusters=3, random_state=42)
-    df['cluster'] = kmeans.fit_predict(cleaned_kota)
-
-    # Menampilkan hasil cluster
-    st.subheader("Hasil K-Means Clustering")
+    # Menampilkan data frame
+    st.write("Data yang diunggah:")
     st.write(df.head())
 
-    # Menampilkan statistik deskriptif per cluster
-    def q25(x):
-        return x.quantile(0.25)
+    # Pastikan data memiliki kolom yang diperlukan untuk clustering dan analisis heatmap
+    if 'Tavg' in df.columns and 'RH_avg' in df.columns and 'RR' in df.columns:
+        # Menampilkan informasi mengenai dataset
+        st.write("Informasi Dataset:")
+        st.write(df.describe())
 
-    def q75(x):
-        return x.quantile(0.75)
+        # Menyusun data untuk heatmap
+        correlation = df[['Tavg', 'RH_avg', 'RR']].corr()
 
-    col_drop = ['Tanggal', 'ddd_car', 'Latitude', 'Longitude', 'KOTA']
-    cluster_result = df.drop(col_drop, axis=1)
+        # Membuat figure dan ax untuk plot
+        fig, ax = plt.subplots(figsize=(10, 6))
 
-    st.subheader("Descriptive Statistics per Cluster")
-    st.write(
-        cluster_result.groupby('cluster')
-        .aggregate(['mean', 'std', 'min', q25, 'median', q75, 'max'])
-        .transpose()
-    )
+        # Membuat heatmap
+        sns.heatmap(correlation, annot=True, cmap='coolwarm', ax=ax)
 
-    # Menampilkan distribusi cluster per kota
-    st.subheader("Distribusi Cluster per Kota")
-    sns.set(style="whitegrid")
-    plt.figure(figsize=(10, 6))
-    sns.countplot(x='KOTA', hue='cluster', data=df, palette='viridis')
-    plt.title('Distribusi Cluster per Kota')
-    plt.xticks(rotation=90)
-    st.pyplot()
+        # Menampilkan plot dengan Streamlit
+        st.pyplot(fig)
 
-    # Peta Heatmap
-    st.subheader("Peta Heatmap")
-    latitude_center = df['Latitude'].mean()
-    longitude_center = df['Longitude'].mean()
+        # Melakukan clustering dengan KMeans
+        st.sidebar.header('Pengaturan Clustering')
+        n_clusters = st.sidebar.slider('Jumlah Cluster', min_value=2, max_value=10, value=3)
 
-    map_heatmap = folium.Map(location=[latitude_center, longitude_center], zoom_start=5)
+        # Menggunakan StandardScaler untuk normalisasi
+        scaler = StandardScaler()
+        scaled_data = scaler.fit_transform(df[['Tavg', 'RH_avg', 'RR']])
 
-    features = {
-        'Tavg': df[['Latitude', 'Longitude', 'Tavg']],
-        'RH_avg': df[['Latitude', 'Longitude', 'RH_avg']],
-        'RR': df[['Latitude', 'Longitude', 'RR']],
-        'ss': df[['Latitude', 'Longitude', 'ss']]
-    }
+        # Melakukan clustering menggunakan KMeans
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        df['Cluster'] = kmeans.fit_predict(scaled_data)
 
-    for feature_name, feature_data in features.items():
-        feature_data = feature_data.dropna(subset=['Latitude', 'Longitude', feature_name])
-        heatmap_data = feature_data.values.tolist()
-        feature_group = folium.FeatureGroup(name=feature_name, show=(feature_name == 'Tavg'))
-        heatmap_layer = plugins.HeatMap(heatmap_data, radius=20)
-        feature_group.add_child(heatmap_layer)
-        map_heatmap.add_child(feature_group)
+        # Menampilkan hasil clustering
+        st.write(f"Hasil Clustering dengan {n_clusters} Cluster:")
+        st.write(df.head())
 
-    folium.LayerControl().add_to(map_heatmap)
-    st.write(map_heatmap)
+        # Menampilkan plot clustering
+        st.write("Visualisasi Hasil Clustering:")
+        fig2, ax2 = plt.subplots(figsize=(10, 6))
 
+        # Plot hasil clustering
+        scatter = ax2.scatter(df['Tavg'], df['RH_avg'], c=df['Cluster'], cmap='viridis')
+        ax2.set_xlabel('Temperatur Rata-rata (Tavg)')
+        ax2.set_ylabel('Kelembaban Rata-rata (RH_avg)')
+        fig2.colorbar(scatter, ax=ax2, label='Cluster')
+
+        # Menampilkan plot clustering
+        st.pyplot(fig2)
+        
+    else:
+        st.error("File tidak memiliki kolom yang diperlukan ('Tavg', 'RH_avg', 'RR').")
 else:
-    st.info("Silakan upload file CSV untuk memulai")
+    st.info("Silakan unggah file CSV terlebih dahulu.")
