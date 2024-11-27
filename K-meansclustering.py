@@ -1,90 +1,111 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import davies_bouldin_score, silhouette_score
 import folium
-from folium import plugins
-import geopandas as gpd
-from branca.element import Template, MacroElement
+from folium.plugins import HeatMap
 
-# Membaca file CSV hasil clustering
+# Load dataset
 @st.cache
 def load_data():
-    return pd.read_csv('Hasilcluster_result.csv')
+    df = pd.read_csv("Hasilcluster_result.csv")  # Pastikan file ini sudah diupload di direktori aplikasi
+    return df
 
-df = load_data()
+# Preprocessing Function
+@st.cache
+def preprocess_data(df):
+    df_clean = df.copy()
+    scaler = StandardScaler()
+    features = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car']
+    df_clean[features] = scaler.fit_transform(df_clean[features])
+    return df_clean
 
-# Menampilkan data preprocessing
-st.title("Aplikasi Clustering K-Means Curah Hujan")
-st.header("Hasil Preprocessing Data")
-st.write(df.head())  # Menampilkan preview data
+# Elbow Method for KMeans
+@st.cache
+def elbow_method(df):
+    range_n_clusters = list(range(1, 11))
+    wcss = []
+    for n_clusters in range_n_clusters:
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        kmeans.fit(df)
+        wcss.append(kmeans.inertia_)
+    
+    plt.figure(figsize=(8, 6))
+    plt.plot(range_n_clusters, wcss, marker='*', markersize=10, markerfacecolor='red')
+    plt.title('Metode Elbow K-Means')
+    plt.xlabel('Jumlah Cluster')
+    plt.ylabel('WCSS')
+    st.pyplot()
 
-# Elbow Method untuk Menentukan Jumlah Cluster Optimal
-st.header("Metode Elbow K-Means")
-range_n_clusters = list(range(1, 11))
-wcss = []
+# KMeans Clustering
+@st.cache
+def kmeans_clustering(df):
+    kmeans = KMeans(n_clusters=3, random_state=42).fit(df)
+    df['cluster'] = kmeans.labels_
+    return df, kmeans
 
-for n_clusters in range_n_clusters:
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-    kmeans.fit(df.drop(columns=['cluster']))
-    wcss.append(kmeans.inertia_)
+# Descriptive statistics of clusters
+def describe_clusters(df):
+    cluster_dfs = {}
+    for cluster in df['cluster'].unique():
+        cluster_dfs[cluster] = df[df['cluster'] == cluster]
+    for cluster, cluster_df in cluster_dfs.items():
+        st.write(f"Descriptive statistics of cluster {cluster}")
+        st.write(cluster_df.describe())
 
-fig, ax = plt.subplots()
-ax.plot(range_n_clusters, wcss, marker='*', markersize=10, markerfacecolor='red')
-ax.set_title('Metode Elbow K-Means')
-ax.set_xlabel('Jumlah Cluster')
-ax.set_ylabel('WCSS')
-st.pyplot(fig)
+# Davies-Bouldin and Silhouette Scores
+def evaluate_clustering(df, kmeans):
+    db_index = davies_bouldin_score(df, kmeans.labels_)
+    silhouette = silhouette_score(df, kmeans.labels_)
+    st.write(f"**Davies-Bouldin Index**: {db_index:.5f}")
+    st.write(f"**Silhouette Score**: {silhouette:.5f}")
 
-# Menampilkan Hasil Clustering K-Means
-st.header("Hasil Clustering K-Means")
+# Mapping Heatmap
+def plot_heatmap(df):
+    m = folium.Map(location=[-7.250445, 112.768845], zoom_start=6)
+    heat_data = [[row['Latitude'], row['Longitude'], row['RR']] for index, row in df.iterrows()]
+    HeatMap(heat_data).add_to(m)
+    st.write("**Peta Distribusi Curah Hujan**")
+    st.write(m)
 
-# Memuat model KMeans yang sudah disimpan
-import joblib
-kmeans = joblib.load('kmeans_model.pkl')
+def main():
+    st.title("Aplikasi Clustering K-Means untuk Curah Hujan")
 
-# Menambahkan label cluster ke dalam data
-df['cluster'] = kmeans.labels_
+    # Load Data
+    df = load_data()
 
-# Evaluasi Clustering
-st.subheader("Evaluasi Model KMeans")
-kmeans_dbi = davies_bouldin_score(df.drop(columns=['cluster']), df['cluster'])
-kmeans_sil = silhouette_score(df.drop(columns=['cluster']), df['cluster'])
-st.write(f'Davies-Bouldin Index: {kmeans_dbi:.5f}')
-st.write(f'Silhouette Score: {kmeans_sil:.5f}')
+    # Show raw data and description
+    st.write("**Data Hujan Tahun 2020 - 2024**")
+    st.write(df.head())
 
-# Menampilkan Descriptive Statistics untuk setiap cluster
-st.subheader("Statistik Deskriptif Tiap Cluster")
+    # Preprocess Data
+    df_clean = preprocess_data(df)
+    st.write("**Data setelah Preprocessing**")
+    st.write(df_clean.head())
 
-for i in range(3):
-    st.write(f"Descriptive statistics of cluster {i}")
-    cluster_data = df[df['cluster'] == i]
-    st.write(cluster_data.describe())
+    # Elbow Method
+    st.subheader("Metode Elbow K-Means")
+    elbow_method(df_clean)
 
-# Distribusi Cluster per Kabupaten
-st.subheader("Distribusi Cluster per Kabupaten")
-cluster_distribution = df['cluster'].value_counts()
-st.bar_chart(cluster_distribution)
+    # Perform KMeans Clustering
+    st.subheader("Hasil Clustering K-Means")
+    clustered_data, kmeans_model = kmeans_clustering(df_clean)
+    st.write(clustered_data.head())
 
-# Membuat Peta Heatmap Curah Hujan
-st.header("Peta Heatmap Curah Hujan")
+    # Evaluation
+    st.subheader("Evaluasi K-Means Clustering")
+    evaluate_clustering(df_clean, kmeans_model)
 
-# Membuat peta menggunakan folium
-m = folium.Map(location=[-7.250445, 112.768845], zoom_start=6)  # Koordinat Indonesia
+    # Descriptive statistics per cluster
+    describe_clusters(clustered_data)
 
-# Menambahkan marker untuk setiap kota berdasarkan latituda dan longitudanya
-for _, row in df.iterrows():
-    folium.CircleMarker(
-        location=(row['Latitude'], row['Longitude']),
-        radius=5,
-        color='blue',
-        fill=True,
-        fill_color='blue',
-        fill_opacity=0.6
-    ).add_to(m)
+    # Plot Heatmap
+    st.subheader("Distribusi Curah Hujan per Kabupaten")
+    plot_heatmap(clustered_data)
 
-# Menampilkan peta
-st.write(m)
+if __name__ == '__main__':
+    main()
