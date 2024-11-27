@@ -1,98 +1,75 @@
-import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import folium
-from folium.plugins import HeatMap
+import numpy as np
+import streamlit as st
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
-from sklearn.metrics import davies_bouldin_score, silhouette_score
+from sklearn.impute import SimpleImputer
+import matplotlib.pyplot as plt
 
-# Fungsi untuk load data
-@st.cache
-def load_data(file):
-    return pd.read_csv(file)
-
-# Fungsi untuk plotting elbow method
+# Fungsi untuk menampilkan grafik Elbow
 def elbow_method(data):
-    range_n_clusters = range(1, 11)
     wcss = []
-    for n_clusters in range_n_clusters:
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    for i in range(1, 11):  # Coba k = 1 sampai 10
+        kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=0)
         kmeans.fit(data)
         wcss.append(kmeans.inertia_)
-    return wcss
+    
+    # Menampilkan grafik Elbow
+    plt.figure(figsize=(8, 6))
+    plt.plot(range(1, 11), wcss)
+    plt.title('Metode Elbow untuk Pemilihan Jumlah Klaster')
+    plt.xlabel('Jumlah Klaster')
+    plt.ylabel('WCSS (Within-Cluster Sum of Squares)')
+    plt.show()
 
-# Fungsi untuk membuat heatmap
-def plot_heatmap(data):
-    m = folium.Map(location=[-7.250445, 112.768845], zoom_start=7)
-    heat_data = [[row['Latitude'], row['Longitude']] for _, row in data.iterrows()]
-    HeatMap(heat_data).add_to(m)
-    return m
+# Upload file CSV
+st.title('K-Means Clustering dengan Streamlit')
 
-# Fungsi untuk evaluasi cluster
-def evaluate_clustering(data, labels):
-    dbi = davies_bouldin_score(data, labels)
-    sil = silhouette_score(data, labels)
-    return dbi, sil
-
-# Main Streamlit App
-st.title("Aplikasi K-Means Clustering Curah Hujan")
-st.sidebar.header("Upload Data")
-
-uploaded_file = st.sidebar.file_uploader("Upload file hasil clustering (CSV)", type="csv")
-
-if uploaded_file:
-    # Load data
-    data = load_data(uploaded_file)
-    st.write("### Data yang Diupload")
-    st.dataframe(data.head())
-
-    # Menampilkan deskriptif statistik
-    st.write("### Statistik Deskriptif")
-    st.write(data.describe())
-
-    # Preprocessing
-    st.write("### Data Preprocessing")
-    numeric_columns = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car']
+uploaded_file = st.file_uploader("Pilih file CSV untuk analisis K-Means", type="csv")
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    
+    # Menampilkan data yang diupload
+    st.write("Data yang diupload:")
+    st.write(df.head())
+    
+    # Cek missing values
+    st.write("Cek missing values:")
+    missing_values = df.isnull().sum()
+    st.write(missing_values)
+    
+    # Tangani missing values (Imputasi dengan mean)
+    st.write("Mengisi missing values dengan mean:")
+    imputer = SimpleImputer(strategy='mean')  # Bisa juga menggunakan 'median' atau 'most_frequent'
+    df_imputed = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+    
+    # Cek kembali missing values setelah imputasi
+    missing_values_after_imputation = df_imputed.isnull().sum()
+    st.write(missing_values_after_imputation)
+    
+    # Scaling data
+    st.write("Melakukan scaling pada data...")
     scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(data[numeric_columns])
-    scaled_df = pd.DataFrame(scaled_data, columns=numeric_columns)
+    scaled_data = scaler.fit_transform(df_imputed)
+    
+    # Menampilkan grafik Elbow untuk menentukan jumlah klaster
+    st.write("Grafik Elbow untuk menentukan jumlah klaster:")
+    elbow_method(scaled_data)
+    
+    # Menjalankan K-Means (misalnya dengan 3 klaster)
+    kmeans = KMeans(n_clusters=3, random_state=42)
+    kmeans.fit(scaled_data)
+    
+    # Menampilkan hasil klastering
+    st.write("Hasil Klastering K-Means:")
+    df_imputed['Cluster'] = kmeans.labels_
+    st.write(df_imputed.head())
 
-    # Elbow Method
-    st.write("### Metode Elbow")
-    wcss = elbow_method(scaled_df)
-    fig, ax = plt.subplots()
-    ax.plot(range(1, 11), wcss, marker='o')
-    ax.set_title("Metode Elbow")
-    ax.set_xlabel("Jumlah Cluster")
-    ax.set_ylabel("WCSS")
-    st.pyplot(fig)
-
-    # K-Means Clustering
-    st.sidebar.header("Clustering Parameters")
-    n_clusters = st.sidebar.slider("Jumlah Cluster", 2, 5, 3)
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-    data['cluster'] = kmeans.fit_predict(scaled_df)
-
-    # Evaluasi Cluster
-    dbi, sil = evaluate_clustering(scaled_df, data['cluster'])
-    st.write("### Evaluasi Clustering")
-    st.write(f"Davies-Bouldin Index: {dbi:.5f}")
-    st.write(f"Silhouette Score: {sil:.5f}")
-
-    # Statistik per Cluster
-    st.write("### Statistik per Cluster")
-    for cluster in range(n_clusters):
-        st.write(f"#### Cluster {cluster}")
-        st.write(data[data['cluster'] == cluster].describe())
-
-    # Distribusi Cluster
-    st.write("### Distribusi Cluster per Kabupaten")
-    st.bar_chart(data['cluster'].value_counts())
-
-    # Heatmap
-    st.write("### Heatmap Curah Hujan")
-    map_data = data[['Latitude', 'Longitude']].dropna()
-    folium_map = plot_heatmap(map_data)
-    folium_static(folium_map)
+    # Menampilkan grafik hasil klastering
+    st.write("Grafik Hasil Klastering:")
+    plt.figure(figsize=(8, 6))
+    plt.scatter(scaled_data[:, 0], scaled_data[:, 1], c=kmeans.labels_, cmap='rainbow')
+    plt.title('Hasil K-Means Clustering')
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    st.pyplot()
