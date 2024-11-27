@@ -90,9 +90,9 @@ if menu == "Clustering Dengan Metode K-Means":
     df['cluster'] = df['cluster'].replace(rename)
     st.markdown("""
     ### Cluster Berdasarkan Curah Hujan:
-    1. Cluster 0: Curah hujan tinggi (musim hujan).
-    2. Cluster 2: Curah hujan sedang (cuaca normal).
-    3. Cluster 1: Curah hujan rendah (musim kering).
+    1. **Cluster 0**: Curah hujan tinggi (musim hujan).
+    2. **Cluster 2**: Curah hujan sedang (cuaca normal).
+    3. **Cluster 1**: Curah hujan rendah (musim kering).
     """)
     st.dataframe(df.head())
 
@@ -122,3 +122,24 @@ if menu == "Clustering Dengan Metode K-Means":
     st.subheader("Heatmap")
     heatmap = create_heatmap(df)
     st_folium(heatmap, width=700, height=500)
+
+    # Penjelasan Warna pada Heatmap
+    st.markdown("""
+    ### Penjelasan Warna pada Heatmap:
+    - **Merah Tua / Oranye**: Daerah dengan curah hujan tinggi, biasanya terjadi pada musim hujan atau daerah tropis dengan intensitas hujan tinggi.
+    - **Kuning / Hijau Muda**: Daerah dengan curah hujan sedang, mencerminkan cuaca normal atau transisi musim.
+    - **Biru Tua / Biru Muda**: Daerah dengan curah hujan rendah, sering terjadi pada musim kemarau atau wilayah kering.
+    """)
+
+    # Penjelasan Cluster Berdasarkan Curah Hujan
+    st.subheader("Penjelasan Cluster Berdasarkan Curah Hujan")
+    st.markdown("""
+    1. **Cluster 0 (Curah Hujan Tinggi - Musim Hujan):**
+       - Daerah dengan intensitas curah hujan tinggi.
+       - Sering terjadi pada musim hujan dengan curah hujan di atas rata-rata.
+    2. **Cluster 2 (Curah Hujan Sedang - Cuaca Normal):**
+       - Daerah dengan curah hujan sedang, biasanya mencerminkan cuaca normal atau transisi musim.
+    3. **Cluster 1 (Curah Hujan Rendah - Musim Kering):**
+       - Daerah dengan intensitas curah hujan rendah.
+       - Sering terjadi pada musim kemarau atau di wilayah yang lebih kering.
+    """)
