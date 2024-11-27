@@ -88,7 +88,7 @@ if menu == "Clustering Dengan Metode K-Means":
     st.subheader("Hasil Clustering K-Means")
     rename = {0: 2, 1: 0, 2: 1}
     df['cluster'] = df['cluster'].replace(rename)
-    st.markdown("""
+    st.markdown(""" 
     ### Cluster Berdasarkan Curah Hujan:
     1. **Cluster 0**: Curah hujan tinggi (musim hujan).
     2. **Cluster 2**: Curah hujan sedang (cuaca normal).
@@ -118,22 +118,9 @@ if menu == "Clustering Dengan Metode K-Means":
     plt.legend(title="Cluster", fontsize=10, loc='upper right')
     st.pyplot(plt)
 
-    # Heatmap
-    st.subheader("Heatmap")
-    heatmap = create_heatmap(df)
-    st_folium(heatmap, width=700, height=500)
-
-    # Penjelasan Warna pada Heatmap
-    st.markdown("""
-    ### Penjelasan Warna pada Heatmap:
-    - **Merah Tua / Oranye**: Daerah dengan curah hujan tinggi, biasanya terjadi pada musim hujan atau daerah tropis dengan intensitas hujan tinggi.
-    - **Kuning / Hijau Muda**: Daerah dengan curah hujan sedang, mencerminkan cuaca normal atau transisi musim.
-    - **Biru Tua / Biru Muda**: Daerah dengan curah hujan rendah, sering terjadi pada musim kemarau atau wilayah kering.
-    """)
-
     # Penjelasan Cluster Berdasarkan Curah Hujan
     st.subheader("Penjelasan Cluster Berdasarkan Curah Hujan")
-    st.markdown("""
+    st.markdown(""" 
     1. **Cluster 0 (Curah Hujan Tinggi - Musim Hujan):**
        - Daerah dengan intensitas curah hujan tinggi.
        - Sering terjadi pada musim hujan dengan curah hujan di atas rata-rata.
@@ -142,4 +129,17 @@ if menu == "Clustering Dengan Metode K-Means":
     3. **Cluster 1 (Curah Hujan Rendah - Musim Kering):**
        - Daerah dengan intensitas curah hujan rendah.
        - Sering terjadi pada musim kemarau atau di wilayah yang lebih kering.
+    """)
+
+    # Heatmap
+    st.subheader("Heatmap")
+    heatmap = create_heatmap(df)
+    st_folium(heatmap, width=700, height=500)
+
+    # Penjelasan Warna pada Heatmap
+    st.markdown(""" 
+    ### Penjelasan Warna pada Heatmap:
+    - **Merah Tua / Oranye**: Daerah dengan curah hujan tinggi, biasanya terjadi pada musim hujan atau daerah tropis dengan intensitas hujan tinggi.
+    - **Kuning / Hijau Muda**: Daerah dengan curah hujan sedang, mencerminkan cuaca normal atau transisi musim.
+    - **Biru Tua / Biru Muda**: Daerah dengan curah hujan rendah, sering terjadi pada musim kemarau atau wilayah kering.
     """)
