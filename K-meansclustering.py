@@ -9,15 +9,19 @@ import folium
 from folium.plugins import HeatMap
 from sklearn.preprocessing import StandardScaler
 import joblib
+from sklearn.impute import SimpleImputer
 
-# Load the cleaned dataset and KMeans model
+# Memuat dataset yang sudah dibersihkan dan model KMeans
 @st.cache
 def load_data():
-    df = pd.read_csv('Hasilcluster_result.csv')  # Ubah sesuai dengan path file dataset yang digunakan
-    kmeans = joblib.load('kmeans_model.pkl')  # Ubah sesuai dengan path model yang disimpan
+    df = pd.read_csv('Hasilcluster_result.csv')  # Sesuaikan dengan path dataset yang digunakan
+    kmeans = joblib.load('kmeans_model.pkl')  # Sesuaikan dengan path model yang disimpan
     return df, kmeans
 
 df, kmeans = load_data()
+
+# Menghapus baris yang mengandung nilai NaN
+df = df.dropna(subset=['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car'])
 
 # Preprocessing
 scaler = StandardScaler()
@@ -31,7 +35,7 @@ st.subheader('Data Preprocessing')
 st.write(df.head())
 
 # Menampilkan grafik Elbow untuk memilih jumlah cluster
-st.subheader('Elbow Method for Optimal K')
+st.subheader('Metode Elbow untuk Menentukan K Optimal')
 wcss = []
 range_n_clusters = list(range(1, 11))
 for n_clusters in range_n_clusters:
@@ -55,11 +59,11 @@ davies_bouldin = davies_bouldin_score(df_scaled[fitur], df['cluster'])
 silhouette = silhouette_score(df_scaled[fitur], df['cluster'])
 
 st.subheader('Evaluasi K-Means')
-st.write(f'Davies-Bouldin Index: {davies_bouldin:.5f}')
-st.write(f'Silhouette Score: {silhouette:.5f}')
+st.write(f'Index Davies-Bouldin: {davies_bouldin:.5f}')
+st.write(f'Skor Silhouette: {silhouette:.5f}')
 
-# Descriptive statistics per cluster
-st.subheader('Descriptive Statistics per Cluster')
+# Statistik deskriptif per cluster
+st.subheader('Statistik Deskriptif per Cluster')
 for i in range(3):
     st.write(f"Cluster {i}")
     st.write(df[df['cluster'] == i].describe())
@@ -84,4 +88,3 @@ st.write(m)
 # Menyimpan hasil clustering
 st.subheader('Hasil Clustering')
 st.write(df[['KOTA', 'cluster']].head())
-
