@@ -104,7 +104,7 @@ def home():
     """)
 
 # Sidebar Menu
-st.sidebar.title("Main Menu")
+st.sidebar.title("Pengaturan")
 menu = st.sidebar.radio(
     "Pilih Menu:",
     (
