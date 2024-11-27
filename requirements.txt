@@ -7,5 +7,5 @@ matplotlib
 tensorflow
 folium
 seaborn
-
-
+geopandas
+joblib
