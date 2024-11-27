@@ -1,73 +1,87 @@
 import streamlit as st
 import pandas as pd
-import seaborn as sns
+import numpy as np
 import matplotlib.pyplot as plt
-import folium
-from folium.plugins import HeatMap
+import seaborn as sns
 from sklearn.cluster import KMeans
 from sklearn.metrics import davies_bouldin_score, silhouette_score
+import folium
+from folium.plugins import HeatMap
+from sklearn.preprocessing import StandardScaler
+import joblib
 
-# Fungsi untuk memuat data
+# Load the cleaned dataset and KMeans model
 @st.cache
-def load_data(file):
-    return pd.read_csv(file)
+def load_data():
+    df = pd.read_csv('Hasilcluster_result.csv')  # Ubah sesuai dengan path file dataset yang digunakan
+    kmeans = joblib.load('kmeans_model.pkl')  # Ubah sesuai dengan path model yang disimpan
+    return df, kmeans
 
-# Fungsi untuk membuat heatmap
-def create_heatmap(data, lat_col, lon_col, value_col):
-    m = folium.Map(location=[data[lat_col].mean(), data[lon_col].mean()], zoom_start=7)
-    heat_data = data[[lat_col, lon_col, value_col]].dropna().values.tolist()
-    HeatMap(heat_data).add_to(m)
-    return m
+df, kmeans = load_data()
 
-# Judul aplikasi
-st.title("Aplikasi Clustering K-Means untuk Data Curah Hujan")
+# Preprocessing
+scaler = StandardScaler()
+fitur = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car']
+df_scaled = df.copy()
+df_scaled[fitur] = scaler.fit_transform(df_scaled[fitur])
 
-# Unggah dataset hasil preprocessing
-st.sidebar.title("Pengaturan")
-uploaded_file = st.sidebar.file_uploader("Unggah file CSV hasil preprocessing", type=["csv"])
+# Menampilkan data preprocessing
+st.title('Clustering Curah Hujan')
+st.subheader('Data Preprocessing')
+st.write(df.head())
 
-if uploaded_file is not None:
-    df = load_data(uploaded_file)
+# Menampilkan grafik Elbow untuk memilih jumlah cluster
+st.subheader('Elbow Method for Optimal K')
+wcss = []
+range_n_clusters = list(range(1, 11))
+for n_clusters in range_n_clusters:
+    kmeans_temp = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans_temp.fit(df_scaled[fitur])
+    wcss.append(kmeans_temp.inertia_())
 
-    # Menampilkan data awal
-    st.subheader("Data Hasil Preprocessing")
-    st.write(df.head())
+fig, ax = plt.subplots(figsize=(8, 6))
+ax.plot(range_n_clusters, wcss, marker='*', markersize=10, markerfacecolor='red')
+ax.set_title('Metode Elbow K-Means')
+ax.set_xlabel('Jumlah Cluster')
+ax.set_ylabel('WCSS')
+st.pyplot(fig)
 
-    # Input untuk parameter clustering
-    st.sidebar.subheader("Parameter Clustering")
-    num_clusters = st.sidebar.slider("Jumlah Cluster (k)", min_value=2, max_value=10, value=3)
-    
-    # Menjalankan K-Means
-    if st.sidebar.button("Jalankan Clustering"):
-        cleaned_data = df.select_dtypes(include=['float64', 'int64'])
-        kmeans = KMeans(n_clusters=num_clusters, random_state=42)
-        df['cluster'] = kmeans.fit_predict(cleaned_data)
+# Menampilkan hasil clustering K-Means
+kmeans = KMeans(n_clusters=3, random_state=42).fit(df_scaled[fitur])
+df['cluster'] = kmeans.labels_
 
-        # Menampilkan hasil clustering
-        st.subheader("Hasil Clustering")
-        st.write(df)
+# Evaluasi K-Means
+davies_bouldin = davies_bouldin_score(df_scaled[fitur], df['cluster'])
+silhouette = silhouette_score(df_scaled[fitur], df['cluster'])
 
-        # Menampilkan evaluasi clustering
-        dbi = davies_bouldin_score(cleaned_data, df['cluster'])
-        sil = silhouette_score(cleaned_data, df['cluster'])
-        st.write(f"Davies-Bouldin Index: {dbi:.5f}")
-        st.write(f"Silhouette Score: {sil:.5f}")
+st.subheader('Evaluasi K-Means')
+st.write(f'Davies-Bouldin Index: {davies_bouldin:.5f}')
+st.write(f'Silhouette Score: {silhouette:.5f}')
 
-        # Menampilkan descriptive statistics
-        st.subheader("Descriptive Statistics per Cluster")
-        for cluster in sorted(df['cluster'].unique()):
-            st.write(f"Descriptive statistics for Cluster {cluster}")
-            st.write(df[df['cluster'] == cluster].describe())
+# Descriptive statistics per cluster
+st.subheader('Descriptive Statistics per Cluster')
+for i in range(3):
+    st.write(f"Cluster {i}")
+    st.write(df[df['cluster'] == i].describe())
 
-        # Distribusi cluster per kabupaten
-        if 'KOTA' in df.columns:
-            st.subheader("Distribusi Cluster per Kabupaten")
-            dist_kabupaten = df.groupby(['KOTA', 'cluster']).size().unstack(fill_value=0)
-            st.write(dist_kabupaten)
+# Distribusi Cluster per Kabupaten
+st.subheader('Distribusi Cluster per Kabupaten')
+cluster_counts = df.groupby(['cluster', 'KOTA']).size().unstack().fillna(0)
+st.write(cluster_counts)
 
-        # Menampilkan peta heatmap
-        if 'Latitude' in df.columns and 'Longitude' in df.columns and 'RR' in df.columns:
-            st.subheader("Peta Heatmap Curah Hujan")
-            heatmap = create_heatmap(df, lat_col='Latitude', lon_col='Longitude', value_col='RR')
-            st.write("Peta Distribusi Curah Hujan:")
-            folium_static(heatmap)
+# Heatmap Curah Hujan
+st.subheader('Heatmap Curah Hujan')
+# Membuat peta dasar
+m = folium.Map(location=[-7.250445, 112.768845], zoom_start=7)
+
+# Menambahkan heatmap
+heat_data = [[row['Latitude'], row['Longitude'], row['RR']] for index, row in df.iterrows()]
+HeatMap(heat_data).add_to(m)
+
+# Menampilkan peta di Streamlit
+st.write(m)
+
+# Menyimpan hasil clustering
+st.subheader('Hasil Clustering')
+st.write(df[['KOTA', 'cluster']].head())
+
