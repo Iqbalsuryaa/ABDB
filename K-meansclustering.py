@@ -32,7 +32,10 @@ if uploaded_file is not None:
         numeric_columns = df_result.select_dtypes(include=[np.number]).columns.tolist()
         numeric_columns.remove('cluster')  # Pastikan kolom 'cluster' tidak terimputasi
         
+        # Inisialisasi imputer
         imputer = SimpleImputer(strategy='mean')
+        
+        # Mengimputasi data
         df_result[numeric_columns] = imputer.fit_transform(df_result[numeric_columns])
         
         # Menggunakan StandardScaler untuk menormalkan data
