@@ -140,11 +140,18 @@ elif menu == "Clustering Dengan Metode K-Means":
 
     st.subheader("Metode Elbow")
     elbow_method(cleaned_kota)
-    st.subheader("Hasil Clustering K-Means")
-    st.dataframe(df.head())
-
+    # Hasil Clustering
     st.subheader("Hasil Clustering K-Means")
     rename = {0: 2, 1: 0, 2: 1}
+    df['cluster'] = df['cluster'].replace(rename)
+    st.markdown(""" 
+    ### Cluster Berdasarkan Curah Hujan:
+    1. *Cluster 0*: Curah hujan tinggi (musim hujan).
+    2. *Cluster 2*: Curah hujan sedang (cuaca normal).
+    3. *Cluster 1*: Curah hujan rendah (musim kering).
+    """)
+    st.dataframe(df.head())
+    
     df['cluster'] = df['cluster'].replace(rename)
     st.markdown(""" 
     ### Cluster Berdasarkan Curah Hujan:
