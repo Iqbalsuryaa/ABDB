@@ -33,16 +33,35 @@ def create_heatmap(data):
         location=[data['Latitude'].mean(), data['Longitude'].mean()],
         zoom_start=6
     )
-    features = {
-        'Tavg': data[['Latitude', 'Longitude', 'Tavg']],
-        'RH_avg': data[['Latitude', 'Longitude', 'RH_avg']],
-        'RR': data[['Latitude', 'Longitude', 'RR']],
-        'ss': data[['Latitude', 'Longitude', 'ss']]
+
+    # Warna RGB untuk setiap cluster
+    cluster_colors = {
+        0: "red",      # Cluster 0: Curah hujan tinggi
+        1: "blue",     # Cluster 1: Curah hujan rendah
+        2: "green"     # Cluster 2: Curah hujan sedang
     }
-    for feature_name, feature_data in features.items():
-        heatmap_data = feature_data.dropna().values.tolist()
-        heatmap_layer = plugins.HeatMap(heatmap_data, radius=15, name=feature_name)
-        map_heatmap.add_child(heatmap_layer)
+
+    # Menambahkan marker untuk setiap cluster
+    for _, row in data.iterrows():
+        cluster = row['cluster']
+        popup_text = f"""
+        <b>Cluster:</b> {cluster}<br>
+        <b>KOTA:</b> {row['KOTA']}<br>
+        <b>Curah Hujan:</b> {row['RR']} mm<br>
+        """
+        folium.CircleMarker(
+            location=(row['Latitude'], row['Longitude']),
+            radius=5,
+            color=cluster_colors[cluster],
+            fill=True,
+            fill_color=cluster_colors[cluster],
+            fill_opacity=0.7,
+            popup=folium.Popup(popup_text, max_width=300)
+        ).add_to(map_heatmap)
+
+    # Heatmap untuk data curah hujan
+    heatmap_data = data[['Latitude', 'Longitude', 'RR']].dropna().values.tolist()
+    plugins.HeatMap(heatmap_data, radius=15).add_to(map_heatmap)
 
     # Menambahkan Layer Control
     folium.LayerControl().add_to(map_heatmap)
@@ -71,6 +90,12 @@ elif menu == "Hasil Clustering":
     st.subheader("Hasil Clustering K-Means")
     rename = {0: 2, 1: 0, 2: 1}
     df['cluster'] = df['cluster'].replace(rename)
+    st.markdown("""
+    ### Cluster Berdasarkan Curah Hujan:
+    1. **Cluster 0**: Curah hujan tinggi (musim hujan).
+    2. **Cluster 2**: Curah hujan sedang (cuaca normal).
+    3. **Cluster 1**: Curah hujan rendah (musim kering).
+    """)
     st.dataframe(df.head())
 
     st.subheader("Statistik Deskriptif per Cluster")
