@@ -70,9 +70,6 @@ def create_heatmap(data):
 # Streamlit Layout
 st.title("Aplikasi Clustering K-Means untuk Curah Hujan")
 
-# Tambahkan opsi menu
-menu = st.sidebar.selectbox("Pilih Menu", ["Metode Elbow", "Distribusi Cluster", "Heatmap"])
-
 # Load Data
 df = load_data()
 
@@ -81,12 +78,33 @@ cleaned_kota = df.drop(columns=['Tanggal', 'Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', '
 encoder = LabelEncoder()
 cleaned_kota['KOTA'] = encoder.fit_transform(df['KOTA'])
 
-# Menu Metode Elbow
-if menu == "Metode Elbow":
-    st.subheader("Metode Elbow")
-    elbow_method(cleaned_kota)
+# Metode Elbow
+st.subheader("Metode Elbow")
+elbow_method(cleaned_kota)
 
-# Menu Distribusi Cluster
+# Hasil Clustering
+st.subheader("Hasil Clustering K-Means")
+rename = {0: 2, 1: 0, 2: 1}
+df['cluster'] = df['cluster'].replace(rename)
+st.markdown(""" 
+### Cluster Berdasarkan Curah Hujan:
+1. Cluster 0: Curah hujan tinggi (musim hujan).
+2. Cluster 2: Curah hujan sedang (cuaca normal).
+3. Cluster 1: Curah hujan rendah (musim kering).
+""")
+st.dataframe(df.head())
+
+st.subheader("Statistik Deskriptif per Cluster")
+col_drop = ['Tanggal', 'ddd_car', 'Latitude', 'Longitude', 'KOTA']
+desc_stats = (
+    df.drop(col_drop, axis=1)
+    .groupby('cluster')
+    .aggregate(['mean', 'std', 'min', 'median', 'max'])
+    .transpose()
+)
+st.dataframe(desc_stats)
+
+# Distribusi Cluster per Kabupaten
 elif menu == "Distribusi Cluster":
     st.subheader("Distribusi Cluster per Kabupaten")
     
@@ -115,8 +133,36 @@ elif menu == "Distribusi Cluster":
     # Menampilkan diagram pada Streamlit
     st.pyplot(plt)
 
-# Menu Heatmap
-elif menu == "Heatmap":
-    st.subheader("Heatmap")
-    heatmap = create_heatmap(df)
-    st_folium(heatmap, width=700, height=500)
+st.markdown("""
+### Penjelasan Cluster Berdasarkan Curah Hujan:
+
+Cluster 0 (Curah Hujan Tinggi - Musim Hujan):
+- Cluster ini menunjukkan daerah-daerah yang mengalami curah hujan tinggi. Biasanya cluster ini mewakili wilayah yang terletak di musim hujan atau daerah dengan iklim tropis yang sering mengalami hujan deras.
+- Ciri-ciri: Area yang termasuk dalam cluster ini akan menunjukkan intensitas curah hujan yang lebih tinggi (lebih dari rata-rata), yang biasanya terkait dengan musim hujan.
+
+Cluster 2 (Curah Hujan Sedang - Cuaca Normal):
+- Cluster ini berisi daerah-daerah dengan curah hujan sedang, yang biasanya terjadi pada cuaca normal atau musim transisi antara musim hujan dan kemarau.
+- Ciri-ciri: Wilayah yang termasuk dalam cluster ini memiliki tingkat curah hujan yang cukup stabil, tidak terlalu tinggi dan juga tidak terlalu rendah, mencerminkan cuaca yang tidak ekstrem.
+
+Cluster 1 (Curah Hujan Rendah - Musim Kering):
+- Cluster ini mencakup daerah-daerah yang mengalami curah hujan rendah, yang biasanya terjadi pada musim kemarau atau wilayah yang lebih kering.
+- Ciri-ciri: Area yang termasuk dalam cluster ini cenderung mengalami sedikit hujan atau bahkan tidak ada hujan sama sekali dalam periode tertentu, mencerminkan musim kering atau iklim yang lebih kering.
+""")
+
+# Heatmap
+st.subheader("Heatmap")
+heatmap = create_heatmap(df)
+st_folium(heatmap, width=700, height=500)
+
+st.markdown("""
+### Penjelasan Warna pada Heatmap:
+
+Warna Merah Tua / Kuning Tua:
+- Menunjukkan daerah dengan curah hujan yang tinggi. Lokasi-lokasi yang lebih intens curah hujannya akan tampak dengan warna yang lebih gelap, daerah dengan intensitas curah hujan tinggi sering kali berwarna merah tua atau oranye terang, menunjukkan curah hujan yang sangat tinggi.
+
+Warna Kuning / Hijau Muda:
+- Menunjukkan daerah dengan curah hujan sedang, Warna-warna seperti kuning atau hijau muda menandakan intensitas hujan yang lebih rendah dibandingkan dengan daerah merah.
+
+Warna Biru Tua / Biru Muda:
+- Menunjukkan daerah dengan curah hujan rendah. Ini biasanya mewakili lokasi-lokasi yang memiliki sedikit atau bahkan tidak ada hujan (seperti musim kemarau). Warna biru gelap atau biru muda ini menandakan intensitas hujan yang sangat rendah.
+""")
