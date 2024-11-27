@@ -34,12 +34,14 @@ def create_heatmap(data):
         zoom_start=6
     )
 
+    # Warna RGB untuk setiap cluster
     cluster_colors = {
-        0: "red",      
-        1: "blue",     
-        2: "green"     
+        0: "red",      # Cluster 0: Curah hujan tinggi
+        1: "blue",     # Cluster 1: Curah hujan rendah
+        2: "green"     # Cluster 2: Curah hujan sedang
     }
 
+    # Menambahkan marker untuk setiap cluster
     for _, row in data.iterrows():
         cluster = row['cluster']
         popup_text = f"""
@@ -57,8 +59,11 @@ def create_heatmap(data):
             popup=folium.Popup(popup_text, max_width=300)
         ).add_to(map_heatmap)
 
+    # Heatmap untuk data curah hujan
     heatmap_data = data[['Latitude', 'Longitude', 'RR']].dropna().values.tolist()
     plugins.HeatMap(heatmap_data, radius=15).add_to(map_heatmap)
+
+    # Menambahkan Layer Control
     folium.LayerControl().add_to(map_heatmap)
     return map_heatmap
 
@@ -74,18 +79,18 @@ encoder = LabelEncoder()
 cleaned_kota['KOTA'] = encoder.fit_transform(df['KOTA'])
 
 # Metode Elbow
-st.header("Metode Elbow")
+st.subheader("Metode Elbow")
 elbow_method(cleaned_kota)
 
 # Hasil Clustering
-st.header("Hasil Clustering K-Means")
+st.subheader("Hasil Clustering K-Means")
 rename = {0: 2, 1: 0, 2: 1}
 df['cluster'] = df['cluster'].replace(rename)
 st.markdown(""" 
 ### Cluster Berdasarkan Curah Hujan:
-1. **Cluster 0**: Curah hujan tinggi (musim hujan).
-2. **Cluster 2**: Curah hujan sedang (cuaca normal).
-3. **Cluster 1**: Curah hujan rendah (musim kering).
+1. *Cluster 0*: Curah hujan tinggi (musim hujan).
+2. *Cluster 2*: Curah hujan sedang (cuaca normal).
+3. *Cluster 1*: Curah hujan rendah (musim kering).
 """)
 st.dataframe(df.head())
 
@@ -100,7 +105,7 @@ desc_stats = (
 st.dataframe(desc_stats)
 
 # Distribusi Cluster per Kabupaten
-st.header("Distribusi Cluster per Kabupaten")
+st.subheader("Distribusi Cluster per Kabupaten")
 kota_cluster = df.groupby(['cluster', 'KOTA']).size().reset_index(name='Count')
 sns.barplot(data=kota_cluster, x='KOTA', y='Count', hue='cluster', palette='viridis')
 plt.xticks(rotation=90)
@@ -108,19 +113,34 @@ st.pyplot(plt)
 
 st.markdown("""
 ### Penjelasan Cluster Berdasarkan Curah Hujan:
-**Cluster 0 (Curah Hujan Tinggi - Musim Hujan)**: ...  
-**Cluster 2 (Curah Hujan Sedang - Cuaca Normal)**: ...  
-**Cluster 1 (Curah Hujan Rendah - Musim Kering)**: ...  
+
+*Cluster 0 (Curah Hujan Tinggi - Musim Hujan)*:
+- Cluster ini menunjukkan daerah-daerah yang mengalami curah hujan tinggi. Biasanya cluster ini mewakili wilayah yang terletak di musim hujan atau daerah dengan iklim tropis yang sering mengalami hujan deras.
+- *Ciri-ciri*: Area yang termasuk dalam cluster ini akan menunjukkan intensitas curah hujan yang lebih tinggi (lebih dari rata-rata), yang biasanya terkait dengan musim hujan.
+
+*Cluster 2 (Curah Hujan Sedang - Cuaca Normal)*:
+- Cluster ini berisi daerah-daerah dengan curah hujan sedang, yang biasanya terjadi pada cuaca normal atau musim transisi antara musim hujan dan kemarau.
+- *Ciri-ciri*: Wilayah yang termasuk dalam cluster ini memiliki tingkat curah hujan yang cukup stabil, tidak terlalu tinggi dan juga tidak terlalu rendah, mencerminkan cuaca yang tidak ekstrem.
+
+*Cluster 1 (Curah Hujan Rendah - Musim Kering)*:
+- Cluster ini mencakup daerah-daerah yang mengalami curah hujan rendah, yang biasanya terjadi pada musim kemarau atau wilayah yang lebih kering.
+- *Ciri-ciri*: Area yang termasuk dalam cluster ini cenderung mengalami sedikit hujan atau bahkan tidak ada hujan sama sekali dalam periode tertentu, mencerminkan musim kering atau iklim yang lebih kering.
 """)
 
 # Heatmap
-st.header("Heatmap")
+st.subheader("Heatmap")
 heatmap = create_heatmap(df)
 st_folium(heatmap, width=700, height=500)
 
 st.markdown("""
 ### Penjelasan Warna pada Heatmap:
-**Warna Merah Tua / Kuning Tua**: ...  
-**Warna Kuning / Hijau Muda**: ...  
-**Warna Biru Tua / Biru Muda**: ...  
+
+*Warna Merah Tua / Kuning Tua*:
+- Menunjukkan daerah dengan curah hujan yang tinggi. Lokasi-lokasi yang lebih intens curah hujannya akan tampak dengan warna yang lebih gelap, daerah dengan intensitas curah hujan tinggi sering kali berwarna merah tua atau oranye terang, menunjukkan curah hujan yang sangat tinggi.
+
+*Warna Kuning / Hijau Muda*:
+- Menunjukkan daerah dengan curah hujan sedang, Warna-warna seperti kuning atau hijau muda menandakan intensitas hujan yang lebih rendah dibandingkan dengan daerah merah.
+
+*Warna Biru Tua / Biru Muda*:
+- Menunjukkan daerah dengan curah hujan rendah. Ini biasanya mewakili lokasi-lokasi yang memiliki sedikit atau bahkan tidak ada hujan (seperti musim kemarau). Warna biru gelap atau biru muda ini menandakan intensitas hujan yang sangat rendah.
 """)
