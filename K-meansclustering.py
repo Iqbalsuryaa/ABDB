@@ -1,86 +1,80 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.cluster import KMeans
 from sklearn.metrics import davies_bouldin_score, silhouette_score
-import folium
-from folium.plugins import HeatMap
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer
+from sklearn.cluster import KMeans
 
-# Judul aplikasi
-st.title("Aplikasi Clustering Curah Hujan 2020-2024")
+# Load files
+st.title("K-Means Clustering untuk Curah Hujan")
 
-# Upload file CSV hasil clustering
-uploaded_file = st.file_uploader("Upload Hasil Cluster CSV", type=["csv"])
+# Upload files
+uploaded_preprocessed = st.file_uploader("Upload Preprocessed Dataset CSV", type="csv")
+uploaded_cluster_result = st.file_uploader("Upload Hasil Clustering CSV", type="csv")
+uploaded_model = st.file_uploader("Upload K-Means Model (PKL)", type="pkl")
 
-if uploaded_file is not None:
-    # Membaca data dari file yang diupload
-    df_result = pd.read_csv(uploaded_file)
+if uploaded_preprocessed and uploaded_cluster_result and uploaded_model:
+    # Load data
+    preprocessed_data = pd.read_csv(uploaded_preprocessed)
+    cluster_result = pd.read_csv(uploaded_cluster_result)
+    kmeans_model = pickle.load(uploaded_model)
+
+    # Display preprocessed data
+    st.subheader("Preprocessed Dataset")
+    st.dataframe(preprocessed_data.head())
+
+    # Elbow Method
+    st.subheader("Elbow Method")
+    X = preprocessed_data.drop(columns=["NO", "Tanggal", "KOTA", "Latitude", "Longitude"])
+    distortions = []
+    K = range(1, 11)
+    for k in K:
+        kmeans = KMeans(n_clusters=k, random_state=42)
+        kmeans.fit(X)
+        distortions.append(kmeans.inertia_)
     
-    # Menampilkan data hasil preprocessing
-    st.subheader("Data Hasil Preprocessing")
-    st.write(df_result.head())
-    
-    # Pastikan kolom 'cluster' ada di dataframe
-    if 'cluster' in df_result.columns:
-        st.subheader("Evaluasi K-Means Clustering")
-        
-        # Menangani nilai NaN dengan mengimputasi menggunakan rata-rata untuk kolom numerik
-        numeric_columns = df_result.select_dtypes(include=[np.number]).columns.tolist()
-        numeric_columns.remove('cluster')  # Pastikan kolom 'cluster' tidak terimputasi
-        
-        # Inisialisasi imputer
-        imputer = SimpleImputer(strategy='mean')
-        
-        # Mengimputasi data
-        df_result[numeric_columns] = imputer.fit_transform(df_result[numeric_columns])
-        
-        # Menggunakan StandardScaler untuk menormalkan data
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(df_result[numeric_columns])
-        
-        # Davies-Bouldin Index dan Silhouette Score
-        try:
-            kmeans_dbi = davies_bouldin_score(X_scaled, df_result['cluster'])
-            kmeans_sil = silhouette_score(X_scaled, df_result['cluster'])
-            st.write(f"**Davies-Bouldin Index**: {kmeans_dbi:.5f}")
-            st.write(f"**Silhouette Score**: {kmeans_sil:.5f}")
-        except Exception as e:
-            st.write(f"Terjadi kesalahan dalam perhitungan skor: {str(e)}")
-        
-        # Descriptive statistics of clusters
-        st.subheader("Descriptive Statistics per Cluster")
-        for cluster in df_result['cluster'].unique():
-            st.write(f"Cluster {cluster}:")
-            st.write(df_result[df_result['cluster'] == cluster].describe())
-        
-        # Plotting Elbow Method
-        st.subheader("Metode Elbow K-Means")
-        range_n_clusters = list(range(1, 11))
-        wcss = []
-        for n_clusters in range_n_clusters:
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-            kmeans.fit(X_scaled)  # Gunakan data yang sudah diskalakan
-            wcss.append(kmeans.inertia_)
-        
-        plt.figure(figsize=(8, 6))
-        plt.plot(range_n_clusters, wcss, marker='*', markersize=10, markerfacecolor='red')
-        plt.title('Metode Elbow K-Means')
-        plt.xlabel('Jumlah Cluster')
-        plt.ylabel('WCSS')
-        st.pyplot()
+    plt.figure(figsize=(10, 5))
+    plt.plot(K, distortions, marker="o")
+    plt.title("Elbow Method")
+    plt.xlabel("Number of clusters")
+    plt.ylabel("Inertia")
+    st.pyplot(plt)
 
-        # Map: Heatmap Curah Hujan
-        st.subheader("Peta Heatmap Curah Hujan")
-        if 'Latitude' in df_result.columns and 'Longitude' in df_result.columns:
-            m = folium.Map(location=[df_result['Latitude'].mean(), df_result['Longitude'].mean()], zoom_start=6)
-            heat_data = [[row['Latitude'], row['Longitude'], row['RR']] for index, row in df_result.iterrows()]
-            HeatMap(heat_data).add_to(m)
-            st.write(m)
-        else:
-            st.write("Data Latitude dan Longitude tidak ditemukan.")
-    else:
-        st.write("File yang diupload tidak mengandung kolom 'cluster'.")
+    # Clustering Results
+    st.subheader("Clustering Results")
+    davies_bouldin = davies_bouldin_score(X, cluster_result["cluster"])
+    silhouette = silhouette_score(X, cluster_result["cluster"])
+    st.write(f"Davies-Bouldin Index: {davies_bouldin:.2f}")
+    st.write(f"Silhouette Score: {silhouette:.2f}")
+
+    # Descriptive Statistics
+    st.subheader("Descriptive Statistics per Cluster")
+    clusters = cluster_result["cluster"].unique()
+    for cluster in clusters:
+        st.write(f"Descriptive statistics of cluster {cluster}")
+        st.dataframe(cluster_result[cluster_result["cluster"] == cluster].describe())
+
+    # Distribution per Kabupaten
+    st.subheader("Distribusi Cluster per Kabupaten")
+    cluster_counts = cluster_result.groupby(["KOTA", "cluster"]).size().unstack(fill_value=0)
+    st.bar_chart(cluster_counts)
+
+    # Heatmap Visualization
+    st.subheader("Heatmap Curah Hujan")
+    import folium
+    from streamlit_folium import folium_static
+
+    m = folium.Map(location=[-7.5, 112.5], zoom_start=7)
+    for _, row in cluster_result.iterrows():
+        folium.CircleMarker(
+            location=(row["Latitude"], row["Longitude"]),
+            radius=5,
+            color="blue",
+            fill=True,
+            fill_color="blue",
+            fill_opacity=0.6,
+        ).add_to(m)
+    
+    folium_static(m)
