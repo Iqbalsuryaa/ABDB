@@ -11,4 +11,4 @@ seaborn
 geopandas
 joblib
 geopy
-
+scipy
