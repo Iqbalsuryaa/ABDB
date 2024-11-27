@@ -1,84 +1,104 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
-from sklearn.metrics import davies_bouldin_score, silhouette_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder
 import folium
-from folium.plugins import HeatMap
+from folium import plugins
 
-# Title for the Streamlit app
-st.title("Aplikasi Clustering Curah Hujan 2020 - 2024")
+# Membaca data
+def load_data():
+    data = pd.read_csv('Preprocessed_Dataset.csv')  # Ganti dengan lokasi file Anda
+    return data
 
-# File uploader to upload dataset
-uploaded_file = st.file_uploader("Upload file CSV hasil clustering", type=["csv"])
-if uploaded_file is not None:
-    # Load the dataset
-    df = pd.read_csv(uploaded_file)
-    
-    # Show basic information about the dataset
-    st.write("Data yang diunggah:")
-    st.write(df.head())
-    
-    # Preprocessing steps
-    # (Jika perlu, sesuaikan preprocessing dengan kode yang telah Anda buat sebelumnya)
-    # Example: Scaling the features
-    features = ['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car']
-    df_scaled = df.copy()
-    scaler = StandardScaler()
-    df_scaled[features] = scaler.fit_transform(df[features])
-    
-    # Elbow method to determine optimal number of clusters
-    st.subheader("Metode Elbow K-Means")
-    wcss = []
-    for n_clusters in range(1, 11):
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-        kmeans.fit(df_scaled[features])
-        wcss.append(kmeans.inertia_)
-    
-    plt.figure(figsize=(8, 6))
-    plt.plot(range(1, 11), wcss, marker='*', markersize=10, markerfacecolor='red')
-    plt.title('Metode Elbow K-Means')
-    plt.xlabel('Jumlah Cluster')
-    plt.ylabel('WCSS')
-    st.pyplot()
+df = load_data()
 
-    # Apply KMeans clustering with the selected number of clusters (e.g., 3 clusters)
-    kmeans = KMeans(n_clusters=3, random_state=42)
-    df['cluster'] = kmeans.fit_predict(df_scaled[features])
-    
-    # Clustering evaluation
-    davies_bouldin = davies_bouldin_score(df_scaled[features], df['cluster'])
-    silhouette = silhouette_score(df_scaled[features], df['cluster'])
-    
-    st.subheader("Evaluasi K-Means Clustering")
-    st.write(f"**Davies-Bouldin Index**: {davies_bouldin:.5f}")
-    st.write(f"**Silhouette Score**: {silhouette:.5f}")
-    
-    # Descriptive statistics per cluster
-    st.subheader("Descriptive Statistics per Cluster")
-    for i in range(3):  # Assuming 3 clusters
-        st.write(f"**Descriptive statistics of cluster {i}:**")
-        st.write(df[df['cluster'] == i].describe())
-    
-    # Visualize the clusters using a pairplot
-    st.subheader("Visualisasi Cluster")
-    sns.pairplot(df, hue='cluster', diag_kind='kde', palette='tab10')
-    st.pyplot()
+# Preprocessing: Encoding dan seleksi kolom
+def preprocess_data(df):
+    cleaned_kota = df.drop(columns=['Tanggal', 'Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car'])
+    encoder = LabelEncoder()
+    cleaned_kota['KOTA'] = encoder.fit_transform(cleaned_kota['KOTA'])
+    return cleaned_kota
 
-    # Visualize distribution of clusters per kabupaten
-    st.subheader("Distribusi Cluster per Kabupaten")
-    cluster_counts = df['cluster'].value_counts()
-    st.write(cluster_counts)
+cleaned_kota = preprocess_data(df)
 
-    # Heatmap of rainfall distribution
-    st.subheader("Peta Distribusi Curah Hujan")
-    map_ = folium.Map(location=[-7.250445, 112.768845], zoom_start=5)  # Example center of Indonesia
-    heat_data = [[row['Latitude'], row['Longitude'], row['RR']] for _, row in df.iterrows()]
-    HeatMap(heat_data).add_to(map_)
-    st.write(map_)
+# Menentukan jumlah cluster terbaik dengan metode elbow
+st.title("Clustering Curah Hujan dengan K-Means")
 
-else:
-    st.write("Silakan upload file CSV hasil clustering Anda.")
+range_n_clusters = list(range(1, 11))
+wcss = []
+
+for n_clusters in range_n_clusters:
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans.fit(cleaned_kota)
+    wcss.append(kmeans.inertia_)
+
+# Menampilkan grafik Elbow Method
+st.subheader("Metode Elbow")
+fig, ax = plt.subplots()
+ax.plot(range_n_clusters, wcss, marker='*', markersize=10, markerfacecolor='red')
+ax.set_title('Metode Elbow K-Means')
+ax.set_xlabel('Jumlah Cluster')
+ax.set_ylabel('WCSS')
+st.pyplot(fig)
+
+# Melakukan clustering dengan jumlah cluster yang dipilih (misalnya 3)
+kmeans = KMeans(n_clusters=3, random_state=42)
+df['cluster'] = kmeans.fit_predict(cleaned_kota)
+
+# Menampilkan hasil cluster
+st.subheader("Hasil K-Means Clustering")
+st.write(df.head())
+
+# Menampilkan statistik deskriptif per cluster
+def q25(x):
+    return x.quantile(0.25)
+
+def q75(x):
+    return x.quantile(0.75)
+
+col_drop = ['Tanggal', 'ddd_car', 'Latitude','Longitude', 'KOTA']
+cluster_result = df.drop(col_drop, axis=1)
+
+st.subheader("Descriptive Statistics per Cluster")
+st.write(
+    cluster_result.groupby('cluster')
+    .aggregate(['mean', 'std', 'min', q25, 'median', q75, 'max'])
+    .transpose()
+)
+
+# Menampilkan distribusi cluster per kota
+st.subheader("Distribusi Cluster per Kota")
+sns.set(style="whitegrid")
+plt.figure(figsize=(10, 6))
+sns.countplot(x='KOTA', hue='cluster', data=df, palette='viridis')
+plt.title('Distribusi Cluster per Kota')
+plt.xticks(rotation=90)
+st.pyplot()
+
+# Peta Heatmap
+st.subheader("Peta Heatmap")
+latitude_center = df['Latitude'].mean()
+longitude_center = df['Longitude'].mean()
+
+map_heatmap = folium.Map(location=[latitude_center, longitude_center], zoom_start=5)
+
+features = {
+    'Tavg': df[['Latitude', 'Longitude', 'Tavg']],
+    'RH_avg': df[['Latitude', 'Longitude', 'RH_avg']],
+    'RR': df[['Latitude', 'Longitude', 'RR']],
+    'ss': df[['Latitude', 'Longitude', 'ss']]
+}
+
+for feature_name, feature_data in features.items():
+    feature_data = feature_data.dropna(subset=['Latitude', 'Longitude', feature_name])
+    heatmap_data = feature_data.values.tolist()
+    feature_group = folium.FeatureGroup(name=feature_name, show=(feature_name == 'Tavg'))
+    heatmap_layer = plugins.HeatMap(heatmap_data, radius=20)
+    feature_group.add_child(heatmap_layer)
+    map_heatmap.add_child(feature_group)
+
+folium.LayerControl().add_to(map_heatmap)
+st.write(map_heatmap)
+
