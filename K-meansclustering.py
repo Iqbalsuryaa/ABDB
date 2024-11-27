@@ -6,6 +6,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import LabelEncoder
 import folium
 from folium import plugins
+from streamlit_folium import st_folium
 
 # Fungsi untuk memuat data
 @st.cache_data
@@ -40,8 +41,10 @@ def create_heatmap(data):
     }
     for feature_name, feature_data in features.items():
         heatmap_data = feature_data.dropna().values.tolist()
-        heatmap_layer = plugins.HeatMap(heatmap_data, radius=15)
-        folium.FeatureGroup(name=feature_name).add_child(heatmap_layer).add_to(map_heatmap)
+        heatmap_layer = plugins.HeatMap(heatmap_data, radius=15, name=feature_name)
+        map_heatmap.add_child(heatmap_layer)
+
+    # Menambahkan Layer Control
     folium.LayerControl().add_to(map_heatmap)
     return map_heatmap
 
@@ -92,4 +95,4 @@ elif menu == "Distribusi Cluster":
 elif menu == "Heatmap":
     st.subheader("Heatmap")
     heatmap = create_heatmap(df)
-    st.markdown(folium.Figure().add_child(heatmap).render(), unsafe_allow_html=True)
+    st_folium(heatmap, width=700, height=500)
