@@ -1,127 +1,69 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-import folium
-from folium import plugins
-from streamlit_folium import st_folium
+import joblib
+import numpy as np
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
-# Fungsi untuk memuat data
-@st.cache_data
-def load_data():
-    return pd.read_csv('Hasilcluster_result.csv')
+# Muat model
+MODEL_PATH = "naive_bayes_model.pkl"
+model = joblib.load(MODEL_PATH)
 
-# Fungsi untuk menampilkan metode elbow
-def elbow_method(data):
-    wcss = []
-    for n_clusters in range(1, 11):
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-        kmeans.fit(data)
-        wcss.append(kmeans.inertia_)
-    plt.figure(figsize=(8, 6))
-    plt.plot(range(1, 11), wcss, marker='o', color='b')
-    plt.title('Metode Elbow K-Means')
-    plt.xlabel('Jumlah Cluster')
-    plt.ylabel('WCSS')
-    st.pyplot(plt)
+# Muat dataset
+DATA_PATH = "weather_classification_data.csv"
+data = pd.read_csv(DATA_PATH)
 
-# Fungsi untuk menampilkan heatmap
-def create_heatmap(data):
-    map_heatmap = folium.Map(
-        location=[data['Latitude'].mean(), data['Longitude'].mean()],
-        zoom_start=6
-    )
-    cluster_colors = {0: "red", 1: "blue", 2: "green"}  # Warna RGB untuk setiap cluster
-    for _, row in data.iterrows():
-        cluster = row['cluster']
-        popup_text = f"""
-        <b>Cluster:</b> {cluster}<br>
-        <b>KOTA:</b> {row['KOTA']}<br>
-        <b>Curah Hujan:</b> {row['RR']} mm<br>
-        """
-        folium.CircleMarker(
-            location=(row['Latitude'], row['Longitude']),
-            radius=5,
-            color=cluster_colors[cluster],
-            fill=True,
-            fill_color=cluster_colors[cluster],
-            fill_opacity=0.7,
-            popup=folium.Popup(popup_text, max_width=300)
-        ).add_to(map_heatmap)
-    plugins.HeatMap(data[['Latitude', 'Longitude', 'RR']].dropna().values.tolist(), radius=15).add_to(map_heatmap)
-    folium.LayerControl().add_to(map_heatmap)
-    return map_heatmap
+# Fungsi preprocessing
+def preprocess_input(df, input_data):
+    # Bersihkan nama kolom
+    df.columns = df.columns.str.strip()
 
-# Fungsi untuk klasifikasi dengan Naive Bayes
-def naive_bayes_classification(data):
-    st.subheader("Klasifikasi dengan Naive Bayes")
+    # Isi nilai yang hilang
+    df = df.fillna(df.median(numeric_only=True))
+    df = df.fillna("unknown")
 
-    # Pemilihan fitur dan label
-    features = data[['Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ff_avg']]
-    label = data['cluster']
+    # Label encode kolom target untuk konsistensi
+    label_encoder = LabelEncoder()
+    df['WeatherType'] = label_encoder.fit_transform(df['WeatherType'])
 
-    # Split data menjadi training dan testing
-    X_train, X_test, y_train, y_test = train_test_split(features, label, test_size=0.2, random_state=42)
+    # One-hot encoding untuk fitur kategorikal selain target
+    df_encoded = pd.get_dummies(df, columns=[col for col in df.select_dtypes(include=['object']).columns if col != 'WeatherType'], drop_first=True)
 
-    # Inisialisasi model
-    model = GaussianNB()
-    model.fit(X_train, y_train)
+    # Sesuaikan fitur input dengan struktur data pelatihan
+    X_encoded = pd.DataFrame([input_data], columns=df_encoded.drop(columns=['WeatherType']).columns).fillna(0)
+    return X_encoded
 
-    # Prediksi
-    y_pred = model.predict(X_test)
+# Antarmuka aplikasi Streamlit
+st.title("Aplikasi Klasifikasi Cuaca")
+st.write("Aplikasi ini memprediksi jenis cuaca berdasarkan fitur input.")
 
-    # Evaluasi
-    acc = accuracy_score(y_test, y_pred)
-    st.write(f"Akurasi Model: {acc * 100:.2f}%")
+# Buat input field untuk pengguna
+user_input = {}
+for col in data.columns[:-1]:  # Kecualikan kolom target
+    if data[col].dtype == 'object':
+        user_input[col] = st.text_input(f"{col}", "Masukkan nilai")
+    else:
+        user_input[col] = st.number_input(f"{col}", value=0.0)
 
-    st.write("\n**Classification Report:**")
-    st.text(classification_report(y_test, y_pred))
+if st.button("Klasifikasikan Cuaca"):
+    try:
+        # Preproses input
+        processed_input = preprocess_input(data, user_input)
 
-    # Confusion Matrix
-    st.write("\n**Confusion Matrix:**")
-    cm = confusion_matrix(y_test, y_pred)
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=model.classes_, yticklabels=model.classes_)
-    plt.title("Confusion Matrix")
-    plt.xlabel("Predicted Label")
-    plt.ylabel("True Label")
-    st.pyplot(plt)
+        # Prediksi
+        prediction = model.predict(processed_input)
 
-# Sidebar Menu
-st.sidebar.title("Pengaturan")
-menu = st.sidebar.radio(
-    "Pilih Menu:",
-    (
-        "Home",
-        "Prediksi Dengan Metode ARIMA",
-        "Klasifikasi Citra Dengan Metode CNN",
-        "Klasifikasi Dengan Decision Trees",
-        "Klasifikasi Dengan Naive Bayes",
-        "Clustering Dengan Metode K-Means",
-    )
-)
+        # Dekode hasil prediksi
+        label_encoder = LabelEncoder()
+        label_encoder.fit(data['WeatherType'])
+        predicted_label = label_encoder.inverse_transform(prediction)[0]
 
-# Menentukan menu yang dipilih
-if menu == "Home":
-    st.title("Home")
-    st.write("Selamat datang di aplikasi Analisis Curah Hujan Menggunakan Pendekatan Big Data untuk Mendukung Pertanian!")
-elif menu == "Prediksi Dengan Metode ARIMA":
-    st.title("Prediksi Curah Hujan dengan Metode ARIMA")
-    st.write("Halaman ini akan berisi implementasi prediksi curah hujan dengan ARIMA.")
-elif menu == "Klasifikasi Citra Dengan Metode CNN":
-    st.title("Klasifikasi Citra Awan Curah Hujan dengan Metode CNN")
-    st.write("Halaman ini akan berisi implementasi klasifikasi citra awan dengan CNN.")
-elif menu == "Klasifikasi Dengan Decision Trees":
-    st.title("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees")
-    st.write("Halaman ini akan berisi implementasi klasifikasi cuaca dengan Decision Trees.")
-elif menu == "Klasifikasi Dengan Naive Bayes":
-    df = load_data()
-    naive_bayes_classification(df)
-elif menu == "Clustering Dengan Metode K-Means":
-    st.title("Clustering Curah Hujan dengan Metode K-Means")
-    st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
+        st.success(f"Jenis Cuaca yang Diprediksi: {predicted_label}")
+
+    except Exception as e:
+        st.error(f"Terjadi kesalahan: {e}")
+
+st.write("\n---\n**Informasi Model**")
+st.write(f"Lokasi model: {MODEL_PATH}")
+st.write(f"Lokasi data: {DATA_PATH}")
+
+st.write("\n---\nDikembangkan oleh [Nama Anda]")
