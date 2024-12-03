@@ -1,83 +1,83 @@
 import streamlit as st
 import pandas as pd
-import joblib
-from sklearn.preprocessing import LabelEncoder
 import numpy as np
+from statsmodels.tsa.arima.model import ARIMA
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+import matplotlib.pyplot as plt
 
-# Fungsi utama
-def main():
-    st.title("Weather Classification with Decision Tree")
-    st.write("Aplikasi ini memprediksi jenis cuaca berdasarkan data cuaca yang diberikan.")
+# Fungsi utama aplikasi
+st.title('Forecasting Cuaca Menggunakan Metode ARIMA')
 
-    # Load model
-    model_path = "decision_tree_model.pkl"
-    model = joblib.load(model_path)
+# Upload dataset
+uploaded_file = st.file_uploader("Upload Dataset (format .xlsx):", type="xlsx")
+if uploaded_file is not None:
+    df = pd.read_excel(uploaded_file)
+    st.write("### Dataset Preview:")
+    st.write(df.head())
 
-    # Load dataset
-    csv_path = "weather_classification_data.csv"
-    df = pd.read_csv(csv_path)
+    # EDA dan Pembersihan Data
+    st.write("### Pembersihan Data:")
 
-    # Validasi dataset
-    st.subheader("Dataframe Preview")
-    st.dataframe(df.head())
+    try:
+        df.columns = df.columns.str.strip()
+        df['Date'] = pd.to_datetime(
+            df['tahun'].astype(str) + '-' +
+            df['bulan'].astype(str) + '-' +
+            df['Tanggal'].astype(str)
+        )
+        df.set_index('Date', inplace=True)
+        df = df.asfreq('D')
+        if 'RR Tuban' not in df.columns:
+            st.error("Kolom 'RR Tuban' tidak ditemukan dalam dataset. Pastikan nama kolom sesuai.")
+            st.stop()
+        df['RR Tuban'] = df['RR Tuban'].ffill().bfill()
+    except Exception as e:
+        st.error(f"Terjadi kesalahan dalam pembersihan data: {e}")
+        st.stop()
 
-    st.subheader("Kolom dan Informasi Dataset")
-    buffer = []
-    df.info(buf=buffer)
-    info_str = "\n".join(buffer)
-    st.text(info_str)
+    st.write("Data setelah pembersihan:")
+    st.write(df.head())
 
-    # Preprocessing dataset
-    df = df.fillna(df.median(numeric_only=True))  # Isi nilai numerik dengan median
-    df = df.fillna("unknown")  # Isi nilai kategori dengan "unknown"
+    # Pembagian Data
+    train_data = df['RR Tuban'][:-30]
+    test_data = df['RR Tuban'][-30:]
 
-    # Encoding kolom target
-    label_encoder = LabelEncoder()
-    df["WeatherType"] = label_encoder.fit_transform(df["WeatherType"])
+    # Parameter ARIMA
+    p = st.number_input('Masukkan nilai p (AutoRegressive order):', min_value=0, value=1, step=1)
+    d = st.number_input('Masukkan nilai d (Difference order):', min_value=0, value=1, step=1)
+    q = st.number_input('Masukkan nilai q (Moving Average order):', min_value=0, value=1, step=1)
 
-    # One-Hot Encoding untuk fitur kategorikal
-    df_encoded = pd.get_dummies(df, columns=df.select_dtypes(include=["object"]).columns, drop_first=True)
+    if st.button('Lakukan Forecasting'):
+        try:
+            # Melatih Model ARIMA
+            model = ARIMA(train_data, order=(p, d, q))
+            model_fit = model.fit()
 
-    # Memisahkan fitur (X) dan target (y)
-    X = df_encoded.drop(columns=["WeatherType"])
-    y = df["WeatherType"]
+            # Peramalan
+            forecast = model_fit.forecast(steps=30)
 
-    # Filter fitur dengan slider
-    st.sidebar.header("Filter Features")
-    filtered_data = X.copy()
+            # Evaluasi Hasil
+            mae = mean_absolute_error(test_data, forecast)
+            mse = mean_squared_error(test_data, forecast)
+            rmse = np.sqrt(mse)
 
-    for feature in X.columns:
-        if pd.api.types.is_numeric_dtype(df[feature]):
-            min_value = float(df[feature].min())
-            max_value = float(df[feature].max())
-            selected_range = st.sidebar.slider(
-                f"Filter {feature}",
-                min_value=min_value,
-                max_value=max_value,
-                value=(min_value, max_value)
-            )
-            filtered_data = filtered_data[(df[feature] >= selected_range[0]) & (df[feature] <= selected_range[1])]
+            # Visualisasi
+            st.write("### Hasil Peramalan:")
+            fig, ax = plt.subplots(figsize=(10, 6))
+            ax.plot(train_data, label='Data Pelatihan')
+            ax.plot(test_data, label='Data Aktual', color='orange')
+            ax.plot(test_data.index, forecast, label='Peramalan', color='green')
+            ax.set_title('Peramalan Cuaca dengan ARIMA')
+            ax.set_xlabel('Tanggal')
+            ax.set_ylabel('Curah Hujan (RR Tuban)')
+            ax.legend()
+            st.pyplot(fig)
 
-    st.subheader("Filtered Dataframe Preview")
-    st.dataframe(filtered_data)
+            # Menampilkan Evaluasi
+            st.write("### Evaluasi Model:")
+            st.write(f"Mean Absolute Error (MAE): {mae:.2f}")
+            st.write(f"Mean Squared Error (MSE): {mse:.2f}")
+            st.write(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
 
-    # Input untuk prediksi
-    st.sidebar.header("Input Data untuk Prediksi")
-    input_data = []
-    for feature in X.columns:
-        if pd.api.types.is_numeric_dtype(df[feature]):
-            value = st.sidebar.number_input(f"{feature}", float(df[feature].min()), float(df[feature].max()))
-            input_data.append(value)
-        else:
-            value = st.sidebar.selectbox(f"{feature}", df[feature].unique())
-            input_data.append(value)
-
-    # Prediksi
-    if st.sidebar.button("Predict"):
-        prediction = model.predict([input_data])[0]
-        predicted_label = label_encoder.inverse_transform([prediction])[0]
-        st.subheader("Prediction Result")
-        st.write(f"Predicted Weather Type: **{predicted_label}**")
-
-if __name__ == "__main__":
-    main()
+        except Exception as e:
+            st.error(f"Terjadi kesalahan selama proses peramalan: {e}")
