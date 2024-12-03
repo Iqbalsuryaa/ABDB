@@ -33,7 +33,7 @@ def preprocess_input(df, input_data):
     return X_encoded
 
 # Antarmuka aplikasi Streamlit
-st.title("Aplikasi Klasifikasi Cuaca")
+st.title("Aplikasi Klasifikasi Cuaca Mengunakan Metode Navie Bayes")
 st.write("Aplikasi ini memprediksi jenis cuaca berdasarkan fitur input.")
 
 # Buat input field untuk pengguna
