@@ -19,18 +19,27 @@ if uploaded_file is not None:
     st.write("### Pembersihan Data:")
 
     try:
+        # Menghapus spasi di nama kolom
         df.columns = df.columns.str.strip()
+
+        # Membuat kolom tanggal
         df['Date'] = pd.to_datetime(
             df['tahun'].astype(str) + '-' +
             df['bulan'].astype(str) + '-' +
             df['Tanggal'].astype(str)
         )
         df.set_index('Date', inplace=True)
-        df = df.asfreq('D')
+        df = df.asfreq('D')  # Set frekuensi data ke harian
+
+        # Memastikan kolom 'RR Tuban' ada
         if 'RR Tuban' not in df.columns:
             st.error("Kolom 'RR Tuban' tidak ditemukan dalam dataset. Pastikan nama kolom sesuai.")
             st.stop()
+
+        # Mengonversi data ke numerik dan mengisi nilai NaN
+        df['RR Tuban'] = pd.to_numeric(df['RR Tuban'], errors='coerce')
         df['RR Tuban'] = df['RR Tuban'].ffill().bfill()
+
     except Exception as e:
         st.error(f"Terjadi kesalahan dalam pembersihan data: {e}")
         st.stop()
