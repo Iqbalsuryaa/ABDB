@@ -1,79 +1,79 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import joblib
-from sklearn.preprocessing import LabelEncoder
+import io
 import matplotlib.pyplot as plt
-import seaborn as sns
+from sklearn.tree import plot_tree
 
-# Load the saved model and dataset
+# Load model and data
 MODEL_PATH = "decision_tree_model.pkl"
 DATA_PATH = "weather_classification_data.csv"
 
-# Function to load the model
-def load_model():
-    return joblib.load(MODEL_PATH)
-
-# Function to load the dataset
-def load_dataset():
-    return pd.read_csv(DATA_PATH)
-
-# Main application
+# Fungsi utama aplikasi
 def main():
-    st.title("Weather Classification using Decision Tree")
+    st.title("Aplikasi Klasifikasi Cuaca dengan Decision Tree")
 
-    # Load the model and dataset
-    model = load_model()
-    df = load_dataset()
+    # Load dataset
+    st.sidebar.header("Dataset")
+    df = pd.read_csv(DATA_PATH)
 
-    st.subheader("Dataset Preview")
+    # Informasi dataset
+    st.header("Informasi Dataset")
+    buffer = io.StringIO()
+    df.info(buf=buffer)
+    info_text = buffer.getvalue()
+    buffer.close()
+    st.text(info_text)
+
+    st.subheader("Tampilan Dataset")
     st.write(df.head())
 
-    # Exploratory Data Analysis
-    st.subheader("EDA")
-    st.write("**Dataset Info:**")
-    buffer = []
-    df.info(buf=buffer)
-    st.text("\n".join(buffer))
-
-    st.write("**Summary Statistics:**")
+    # Statistik deskriptif
+    st.subheader("Statistik Deskriptif")
     st.write(df.describe())
 
-    st.write("**Class Distribution:**")
-    class_dist = df['WeatherType'].value_counts()
-    st.bar_chart(class_dist)
+    # Distribusi kelas target
+    st.subheader("Distribusi Kelas Target")
+    plt.figure(figsize=(6, 4))
+    df['WeatherType'].value_counts().plot(kind='bar', color='skyblue')
+    plt.title('Distribusi Kelas Target')
+    plt.xlabel('Kelas')
+    plt.ylabel('Frekuensi')
+    st.pyplot(plt)
 
-    # Preprocessing steps
-    st.subheader("Preprocessing")
-    df = df.fillna(df.median(numeric_only=True))
-    df = df.fillna('unknown')
+    # Load model Decision Tree
+    model = joblib.load(MODEL_PATH)
 
-    label_encoder = LabelEncoder()
-    df['WeatherType'] = label_encoder.fit_transform(df['WeatherType'])
-    df_encoded = pd.get_dummies(df, columns=df.select_dtypes(include=['object']).columns, drop_first=True)
+    # Input fitur untuk prediksi
+    st.sidebar.header("Input Fitur")
+    features = df.drop(columns=['WeatherType']).columns
 
-    st.write("**Transformed Dataset:**")
-    st.write(df_encoded.head())
+    input_data = {}
+    for feature in features:
+        input_data[feature] = st.sidebar.number_input(
+            f"{feature}",
+            float(df[feature].min()),
+            float(df[feature].max()),
+            float(df[feature].mean())
+        )
 
-    # Feature selection and prediction
-    st.subheader("Make a Prediction")
+    input_df = pd.DataFrame([input_data])
 
-    user_input = {}
-    for feature in df_encoded.drop(columns=['WeatherType']).columns:
-        user_input[feature] = st.number_input(f"Input {feature}", value=0.0)
+    st.subheader("Input Data untuk Prediksi")
+    st.write(input_df)
 
-    user_df = pd.DataFrame([user_input])
+    # Prediksi
+    if st.button("Prediksi Cuaca"):
+        prediction = model.predict(input_df)[0]
+        st.subheader("Hasil Prediksi")
+        st.write(f"Kelas Cuaca: {prediction}")
 
-    if st.button("Predict"):
-        prediction = model.predict(user_df)
-        st.write("**Prediction Result:**")
-        st.write(label_encoder.inverse_transform(prediction)[0])
-
-    # Visualization of decision tree
-    st.subheader("Decision Tree Visualization")
-    fig, ax = plt.subplots(figsize=(20, 10))
-    from sklearn.tree import plot_tree
-    plot_tree(model, feature_names=df_encoded.drop(columns=['WeatherType']).columns, class_names=label_encoder.classes_, filled=True, ax=ax)
-    st.pyplot(fig)
+    # Visualisasi Decision Tree
+    st.subheader("Visualisasi Decision Tree")
+    plt.figure(figsize=(20, 10))
+    plot_tree(model, feature_names=features, class_names=np.unique(df['WeatherType'].astype(str)), filled=True)
+    st.pyplot(plt)
 
 if __name__ == "__main__":
     main()
