@@ -1,69 +1,79 @@
 import streamlit as st
 import pandas as pd
 import joblib
-import numpy as np
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Muat model
-MODEL_PATH = "naive_bayes_model.pkl"
-model = joblib.load(MODEL_PATH)
-
-# Muat dataset
+# Load the saved model and dataset
+MODEL_PATH = "decision_tree_model.pkl"
 DATA_PATH = "weather_classification_data.csv"
-data = pd.read_csv(DATA_PATH)
 
-# Fungsi preprocessing
-def preprocess_input(df, input_data):
-    # Bersihkan nama kolom
-    df.columns = df.columns.str.strip()
+# Function to load the model
+def load_model():
+    return joblib.load(MODEL_PATH)
 
-    # Isi nilai yang hilang
+# Function to load the dataset
+def load_dataset():
+    return pd.read_csv(DATA_PATH)
+
+# Main application
+def main():
+    st.title("Weather Classification using Decision Tree")
+
+    # Load the model and dataset
+    model = load_model()
+    df = load_dataset()
+
+    st.subheader("Dataset Preview")
+    st.write(df.head())
+
+    # Exploratory Data Analysis
+    st.subheader("EDA")
+    st.write("**Dataset Info:**")
+    buffer = []
+    df.info(buf=buffer)
+    st.text("\n".join(buffer))
+
+    st.write("**Summary Statistics:**")
+    st.write(df.describe())
+
+    st.write("**Class Distribution:**")
+    class_dist = df['WeatherType'].value_counts()
+    st.bar_chart(class_dist)
+
+    # Preprocessing steps
+    st.subheader("Preprocessing")
     df = df.fillna(df.median(numeric_only=True))
-    df = df.fillna("unknown")
+    df = df.fillna('unknown')
 
-    # Label encode kolom target untuk konsistensi
     label_encoder = LabelEncoder()
     df['WeatherType'] = label_encoder.fit_transform(df['WeatherType'])
+    df_encoded = pd.get_dummies(df, columns=df.select_dtypes(include=['object']).columns, drop_first=True)
 
-    # One-hot encoding untuk fitur kategorikal selain target
-    df_encoded = pd.get_dummies(df, columns=[col for col in df.select_dtypes(include=['object']).columns if col != 'WeatherType'], drop_first=True)
+    st.write("**Transformed Dataset:**")
+    st.write(df_encoded.head())
 
-    # Sesuaikan fitur input dengan struktur data pelatihan
-    X_encoded = pd.DataFrame([input_data], columns=df_encoded.drop(columns=['WeatherType']).columns).fillna(0)
-    return X_encoded
+    # Feature selection and prediction
+    st.subheader("Make a Prediction")
 
-# Antarmuka aplikasi Streamlit
-st.title("Aplikasi Klasifikasi Cuaca Mengunakan Metode Navie Bayes")
-st.write("Aplikasi ini memprediksi jenis cuaca berdasarkan fitur input.")
+    user_input = {}
+    for feature in df_encoded.drop(columns=['WeatherType']).columns:
+        user_input[feature] = st.number_input(f"Input {feature}", value=0.0)
 
-# Buat input field untuk pengguna
-user_input = {}
-for col in data.columns[:-1]:  # Kecualikan kolom target
-    if data[col].dtype == 'object':
-        user_input[col] = st.text_input(f"{col}", "Masukkan nilai")
-    else:
-        user_input[col] = st.number_input(f"{col}", value=0.0)
+    user_df = pd.DataFrame([user_input])
 
-if st.button("Klasifikasikan Cuaca"):
-    try:
-        # Preproses input
-        processed_input = preprocess_input(data, user_input)
+    if st.button("Predict"):
+        prediction = model.predict(user_df)
+        st.write("**Prediction Result:**")
+        st.write(label_encoder.inverse_transform(prediction)[0])
 
-        # Prediksi
-        prediction = model.predict(processed_input)
+    # Visualization of decision tree
+    st.subheader("Decision Tree Visualization")
+    fig, ax = plt.subplots(figsize=(20, 10))
+    from sklearn.tree import plot_tree
+    plot_tree(model, feature_names=df_encoded.drop(columns=['WeatherType']).columns, class_names=label_encoder.classes_, filled=True, ax=ax)
+    st.pyplot(fig)
 
-        # Dekode hasil prediksi
-        label_encoder = LabelEncoder()
-        label_encoder.fit(data['WeatherType'])
-        predicted_label = label_encoder.inverse_transform(prediction)[0]
-
-        st.success(f"Jenis Cuaca yang Diprediksi: {predicted_label}")
-
-    except Exception as e:
-        st.error(f"Terjadi kesalahan: {e}")
-
-st.write("\n---\n**Informasi Model**")
-st.write(f"Lokasi model: {MODEL_PATH}")
-st.write(f"Lokasi data: {DATA_PATH}")
-
-st.write("\n---\nDikembangkan oleh [Nama Anda]")
+if __name__ == "__main__":
+    main()
