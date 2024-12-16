@@ -189,5 +189,5 @@ elif menu == "Klasifikasi Dengan Metode Navie Bayes":
             st.error(f"Terjadi kesalahan: {e}")
 
 elif menu == "Clustering Dengan Metode K-Means":
-    st.title("Clustering Curah Hujan dengan Metode K-Means")
+    st.write("### Clustering Curah Hujan dengan Metode K-Means")
     st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
