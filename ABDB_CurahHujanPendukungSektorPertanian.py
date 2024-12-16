@@ -168,5 +168,6 @@ elif menu == "Visualisasi Heatmap":
     st.write("Fitur ini sedang dalam pengembangan.")
 
 elif menu == "Clustering K-Means":
-
+    st.write("### Visualisasi Heatmap")
+    st.write("Fitur ini sedang dalam pengembangan.")
 
