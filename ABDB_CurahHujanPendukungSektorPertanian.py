@@ -58,7 +58,7 @@ def create_heatmap(data):
     plugins.HeatMap(data[['Latitude', 'Longitude', 'RR']].dropna().values.tolist(), radius=15).add_to(map_heatmap)
     folium.LayerControl().add_to(map_heatmap)
     return map_heatmap
-
+    
 # Fungsi untuk halaman Home
 def home():
     st.markdown(
@@ -116,7 +116,7 @@ menu = st.sidebar.radio(
         "Home",
         "Prediksi Dengan Metode ARIMA",
         "Klasifikasi Citra Dengan Metode CNN",
-        "Klasifikasi Dengan Decision Trees",
+        "Klasifikasi Dengan Navie Bayes",
         "Clustering Dengan Metode K-Means",
     )
 )
@@ -133,11 +133,15 @@ elif menu == "Prediksi Dengan Metode ARIMA":
         df = pd.read_excel(uploaded_file)
         st.write("### Dataset Preview:")
         st.write(df.head())
-
+    
         # EDA dan Pembersihan Data
         st.write("### Pembersihan Data:")
+    
         try:
+            # Menghapus spasi di nama kolom
             df.columns = df.columns.str.strip()
+    
+            # Membuat kolom tanggal
             df['Date'] = pd.to_datetime(
                 df['tahun'].astype(str) + '-' +
                 df['bulan'].astype(str) + '-' +
@@ -145,62 +149,132 @@ elif menu == "Prediksi Dengan Metode ARIMA":
             )
             df.set_index('Date', inplace=True)
             df = df.asfreq('D')  # Set frekuensi data ke harian
-
-            # Memastikan kolom 'RR' ada
-            if 'RR' in df.columns:
-                st.write("#### Visualisasi Curah Hujan")
-                df['RR'].plot(figsize=(12, 6))
-                st.pyplot()
-                
-                # Implementasi ARIMA
-                st.write("### Prediksi Curah Hujan dengan ARIMA")
-                model = ARIMA(df['RR'], order=(5, 1, 0))
-                model_fit = model.fit()
-                st.write(model_fit.summary())
-
-                # Prediksi
-                forecast = model_fit.forecast(steps=30)
-                st.write("### Prediksi 30 Hari ke Depan:")
-                st.write(forecast)
-
-                # Visualisasi Hasil Prediksi
-                plt.figure(figsize=(12, 6))
-                plt.plot(df.index, df['RR'], label='Data Asli')
-                plt.plot(pd.date_range(df.index[-1], periods=31, freq='D')[1:], forecast, label='Prediksi', color='red')
-                plt.title('Prediksi Curah Hujan Menggunakan ARIMA')
-                plt.legend()
-                st.pyplot()
-
+    
+            # Memastikan kolom 'RR Tuban' ada
+            if 'RR Tuban' not in df.columns:
+                st.error("Kolom 'RR Tuban' tidak ditemukan dalam dataset. Pastikan nama kolom sesuai.")
+                st.stop()
+    
+            # Mengonversi data ke numerik dan mengisi nilai NaN
+            df['RR Tuban'] = pd.to_numeric(df['RR Tuban'], errors='coerce')
+            df['RR Tuban'] = df['RR Tuban'].ffill().bfill()
+    
         except Exception as e:
-            st.write(f"Error: {e}")
+            st.error(f"Terjadi kesalahan dalam pembersihan data: {e}")
+            st.stop()
+    
+        st.write("Data setelah pembersihan:")
+        st.write(df.head())
+    
+        # Pembagian Data
+        train_data = df['RR Tuban'][:-30]
+        test_data = df['RR Tuban'][-30:]
+    
+        # Parameter ARIMA
+        p = st.number_input('Masukkan nilai p (AutoRegressive order):', min_value=0, value=1, step=1)
+        d = st.number_input('Masukkan nilai d (Difference order):', min_value=0, value=1, step=1)
+        q = st.number_input('Masukkan nilai q (Moving Average order):', min_value=0, value=1, step=1)
+    
+        if st.button('Lakukan Forecasting'):
+            try:
+                # Melatih Model ARIMA
+                model = ARIMA(train_data, order=(p, d, q))
+                model_fit = model.fit()
+    
+                # Peramalan
+                forecast = model_fit.forecast(steps=30)
+    
+                # Evaluasi Hasil
+                mae = mean_absolute_error(test_data, forecast)
+                mse = mean_squared_error(test_data, forecast)
+                rmse = np.sqrt(mse)
+    
+                # Visualisasi
+                st.write("### Hasil Peramalan:")
+                fig, ax = plt.subplots(figsize=(10, 6))
+                ax.plot(train_data, label='Data Pelatihan')
+                ax.plot(test_data, label='Data Aktual', color='orange')
+                ax.plot(test_data.index, forecast, label='Peramalan', color='green')
+                ax.set_title('Peramalan Cuaca dengan ARIMA')
+                ax.set_xlabel('Tanggal')
+                ax.set_ylabel('Curah Hujan (RR Tuban)')
+                ax.legend()
+                st.pyplot(fig)
+    
+                # Menampilkan Evaluasi
+                st.write("### Evaluasi Model:")
+                st.write(f"Mean Absolute Error (MAE): {mae:.2f}")
+                st.write(f"Mean Squared Error (MSE): {mse:.2f}")
+                st.write(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
+    
+            except Exception as e:
+                st.error(f"Terjadi kesalahan selama proses peramalan: {e}")
 
 elif menu == "Klasifikasi Citra Dengan Metode CNN":
     st.title("Klasifikasi Citra Awan Curah Hujan dengan Metode CNN")
     st.write("Halaman ini akan berisi implementasi klasifikasi citra awan dengan CNN.")
 
-elif menu == "Klasifikasi Dengan Decision Trees":
-    st.title("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees")
-    st.write("Halaman ini akan berisi implementasi klasifikasi cuaca dengan Decision Trees.")
+elif menu == "Klasifikasi Dengan Navie Bayes":
+    st.title("Klasifikasi Cuaca Curah Hujan menggunakan Navie Bayes")
+    st.write("Halaman ini akan berisi implementasi klasifikasi cuaca dengan  Navie Bayes.")
     
-    uploaded_file = st.file_uploader("Upload Dataset Cuaca (CSV):", type="csv")
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-        st.write("### Dataset Preview:")
-        st.write(df.head())
+    # Muat model
+MODEL_PATH = "naive_bayes_model.pkl"
+model = joblib.load(MODEL_PATH)
 
-        # Preprocessing
-        X = df.drop(['RR'], axis=1)  # Fitur
-        y = df['RR']  # Target
+# Muat dataset
+DATA_PATH = "weather_classification_data.csv"
+data = pd.read_csv(DATA_PATH)
 
-        # Train Decision Tree
-        clf = DecisionTreeClassifier()
-        clf.fit(X, y)
-        st.write("### Hasil Prediksi:")
-        predictions = clf.predict(X)
-        st.write(predictions)
+# Fungsi preprocessing
+def preprocess_input(df, input_data):
+    # Bersihkan nama kolom
+    df.columns = df.columns.str.strip()
 
-        st.write("### Classification Report:")
-        st.text(classification_report(y, predictions))
+    # Isi nilai yang hilang
+    df = df.fillna(df.median(numeric_only=True))
+    df = df.fillna("unknown")
+
+    # Label encode kolom target untuk konsistensi
+    label_encoder = LabelEncoder()
+    df['WeatherType'] = label_encoder.fit_transform(df['WeatherType'])
+
+    # One-hot encoding untuk fitur kategorikal selain target
+    df_encoded = pd.get_dummies(df, columns=[col for col in df.select_dtypes(include=['object']).columns if col != 'WeatherType'], drop_first=True)
+
+    # Sesuaikan fitur input dengan struktur data pelatihan
+    X_encoded = pd.DataFrame([input_data], columns=df_encoded.drop(columns=['WeatherType']).columns).fillna(0)
+    return X_encoded
+
+# Antarmuka aplikasi Streamlit
+st.title("Aplikasi Klasifikasi Cuaca Mengunakan Metode Navie Bayes")
+st.write("Aplikasi ini memprediksi jenis cuaca berdasarkan fitur input.")
+
+# Buat input field untuk pengguna
+user_input = {}
+for col in data.columns[:-1]:  # Kecualikan kolom target
+    if data[col].dtype == 'object':
+        user_input[col] = st.text_input(f"{col}", "Masukkan nilai")
+    else:
+        user_input[col] = st.number_input(f"{col}", value=0.0)
+
+if st.button("Klasifikasikan Cuaca"):
+    try:
+        # Preproses input
+        processed_input = preprocess_input(data, user_input)
+
+        # Prediksi
+        prediction = model.predict(processed_input)
+
+        # Dekode hasil prediksi
+        label_encoder = LabelEncoder()
+        label_encoder.fit(data['WeatherType'])
+        predicted_label = label_encoder.inverse_transform(prediction)[0]
+
+        st.success(f"Jenis Cuaca yang Diprediksi: {predicted_label}")
+
+    except Exception as e:
+        st.error(f"Terjadi kesalahan: {e}")
 
 elif menu == "Clustering Dengan Metode K-Means":
     st.title("Clustering Curah Hujan dengan Metode K-Means")
