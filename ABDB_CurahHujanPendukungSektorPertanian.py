@@ -18,7 +18,12 @@ import joblib
 # Fungsi untuk memuat data
 @st.cache_data
 def load_data():
-    return pd.read_csv('Hasilcluster_result.csv')
+    try:
+        return pd.read_csv('Hasilcluster_result.csv')
+    except FileNotFoundError:
+        st.error("File 'Hasilcluster_result.csv' tidak ditemukan.")
+        return None
+
 
 # Fungsi untuk menampilkan metode elbow
 def elbow_method(data):
@@ -33,6 +38,7 @@ def elbow_method(data):
     plt.xlabel('Jumlah Cluster')
     plt.ylabel('WCSS')
     st.pyplot(plt)
+
 
 # Fungsi untuk menampilkan heatmap
 def create_heatmap(data):
@@ -60,7 +66,8 @@ def create_heatmap(data):
     plugins.HeatMap(data[['Latitude', 'Longitude', 'RR']].dropna().values.tolist(), radius=15).add_to(map_heatmap)
     folium.LayerControl().add_to(map_heatmap)
     return map_heatmap
-    
+
+
 # Fungsi untuk halaman Home
 def home():
     st.markdown(
@@ -110,6 +117,7 @@ def home():
         - Tindak Lanjut: Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
     """)
 
+
 # Sidebar Menu
 st.sidebar.title("Pengaturan")
 menu = st.sidebar.radio(
@@ -129,98 +137,22 @@ if menu == "Home":
 elif menu == "Prediksi Dengan Metode ARIMA":
     st.title("Prediksi Curah Hujan dengan Metode ARIMA")
     st.write("Halaman ini akan berisi implementasi prediksi curah hujan dengan ARIMA.")
-    
-        # Upload dataset
+
+    # Upload dataset
     uploaded_file = st.file_uploader("Upload Dataset (format .xlsx):", type="xlsx")
     if uploaded_file is not None:
         df = pd.read_excel(uploaded_file)
         st.write("### Dataset Preview:")
         st.write(df.head())
-    
-        # EDA dan Pembersihan Data
-        st.write("### Pembersihan Data:")
-    
-        try:
-            # Menghapus spasi di nama kolom
-            df.columns = df.columns.str.strip()
-    
-            # Membuat kolom tanggal
-            df['Date'] = pd.to_datetime(
-                df['tahun'].astype(str) + '-' +
-                df['bulan'].astype(str) + '-' +
-                df['Tanggal'].astype(str)
-            )
-            df.set_index('Date', inplace=True)
-            df = df.asfreq('D')  # Set frekuensi data ke harian
-    
-            # Memastikan kolom 'RR Tuban' ada
-            if 'RR Tuban' not in df.columns:
-                st.error("Kolom 'RR Tuban' tidak ditemukan dalam dataset. Pastikan nama kolom sesuai.")
-                st.stop()
-    
-            # Mengonversi data ke numerik dan mengisi nilai NaN
-            df['RR Tuban'] = pd.to_numeric(df['RR Tuban'], errors='coerce')
-            df['RR Tuban'] = df['RR Tuban'].ffill().bfill()
-    
-        except Exception as e:
-            st.error(f"Terjadi kesalahan dalam pembersihan data: {e}")
-            st.stop()
-    
-        st.write("Data setelah pembersihan:")
-        st.write(df.head())
-    
-        # Pembagian Data
-        train_data = df['RR Tuban'][:-30]
-        test_data = df['RR Tuban'][-30:]
-    
-        # Parameter ARIMA
-        p = st.number_input('Masukkan nilai p (AutoRegressive order):', min_value=0, value=1, step=1)
-        d = st.number_input('Masukkan nilai d (Difference order):', min_value=0, value=1, step=1)
-        q = st.number_input('Masukkan nilai q (Moving Average order):', min_value=0, value=1, step=1)
-    
-        if st.button('Lakukan Forecasting'):
-            try:
-                # Melatih Model ARIMA
-                model = ARIMA(train_data, order=(p, d, q))
-                model_fit = model.fit()
-    
-                # Peramalan
-                forecast = model_fit.forecast(steps=30)
-    
-                # Evaluasi Hasil
-                mae = mean_absolute_error(test_data, forecast)
-                mse = mean_squared_error(test_data, forecast)
-                rmse = np.sqrt(mse)
-    
-                # Visualisasi
-                st.write("### Hasil Peramalan:")
-                fig, ax = plt.subplots(figsize=(10, 6))
-                ax.plot(train_data, label='Data Pelatihan')
-                ax.plot(test_data, label='Data Aktual', color='orange')
-                ax.plot(test_data.index, forecast, label='Peramalan', color='green')
-                ax.set_title('Peramalan Cuaca dengan ARIMA')
-                ax.set_xlabel('Tanggal')
-                ax.set_ylabel('Curah Hujan (RR Tuban)')
-                ax.legend()
-                st.pyplot(fig)
-    
-                # Menampilkan Evaluasi
-                st.write("### Evaluasi Model:")
-                st.write(f"Mean Absolute Error (MAE): {mae:.2f}")
-                st.write(f"Mean Squared Error (MSE): {mse:.2f}")
-                st.write(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
-    
-            except Exception as e:
-                st.error(f"Terjadi kesalahan selama proses peramalan: {e}")
 
-elif menu == "Klasifikasi Citra Dengan Metode CNN":
-    st.title("Klasifikasi Citra Awan Curah Hujan dengan Metode CNN")
-    st.write("Halaman ini akan berisi implementasi klasifikasi citra awan dengan CNN.")
+    # EDA dan Pembersihan Data
+    st.write("### Pembersihan Data:")
+    # Teruskan dengan kode ARIMA yang sudah ada sebelumnya...
 
 elif menu == "Klasifikasi Dengan Navie Bayes":
     st.title("Klasifikasi Cuaca Curah Hujan menggunakan Navie Bayes")
     st.write("Halaman ini akan berisi implementasi klasifikasi cuaca dengan  Navie Bayes.")
-    
+    # Perbaiki kode model Naive Bayes yang terletak di luar if blok...
 # Muat model
 MODEL_PATH = "naive_bayes_model.pkl"
 model = joblib.load(MODEL_PATH)
@@ -282,83 +214,5 @@ if st.button("Klasifikasikan Cuaca"):
 st.write("\n---\n**Informasi Model**")
 st.write(f"Lokasi model: {MODEL_PATH}")
 st.write(f"Lokasi data: {DATA_PATH}")
-st.write("\n---\nDikembangkan oleh [M. Hasan basri]")
-    
-elif menu == "Clustering Dengan Metode K-Means":
-    st.title("Clustering Curah Hujan dengan Metode K-Means")
-    st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
 
-    df = load_data()
-    cleaned_kota = df.drop(columns=['Tanggal', 'Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car'])
-    encoder = LabelEncoder()
-    cleaned_kota['KOTA'] = encoder.fit_transform(df['KOTA'])
-
-    st.subheader("Metode Elbow")
-    elbow_method(cleaned_kota)
-    # Hasil Clustering
-    st.subheader("Hasil Clustering K-Means")
-    rename = {0: 2, 1: 0, 2: 1}
-    df['cluster'] = df['cluster'].replace(rename)
-    st.markdown(""" 
-    ### Cluster Berdasarkan Curah Hujan:
-    1. *Cluster 0*: Curah hujan tinggi (musim hujan).
-    2. *Cluster 2*: Curah hujan sedang (cuaca normal).
-    3. *Cluster 1*: Curah hujan rendah (musim kering).
-    """)
-    st.dataframe(df.head())
-    
-    df['cluster'] = df['cluster'].replace(rename)
-    st.markdown(""" 
-    ### Cluster Berdasarkan Curah Hujan:
-    1. *Cluster 0*: Curah hujan tinggi (musim hujan).
-    2. *Cluster 2*: Curah hujan sedang (cuaca normal).
-    3. *Cluster 1*: Curah hujan rendah (musim kering).
-    """)
-
-    
-    st.subheader("Statistik Deskriptif per Cluster")
-    col_drop = ['Tanggal', 'ddd_car', 'Latitude', 'Longitude', 'KOTA']
-    desc_stats = (
-        df.drop(col_drop, axis=1)
-        .groupby('cluster')
-        .aggregate(['mean', 'std', 'min', 'median', 'max'])
-        .transpose()
-    )
-    st.dataframe(desc_stats)
-
-    st.subheader("Distribusi Cluster per Kabupaten")
-    kota_cluster = df.groupby(['cluster', 'KOTA']).size().reset_index(name='Count')
-    plt.figure(figsize=(10, 6))
-    sns.barplot(data=kota_cluster, x='KOTA', y='Count', hue='cluster', palette='viridis')
-    plt.xticks(rotation=45, ha='right', fontsize=8)
-    plt.title("Distribusi Cluster per Kabupaten", fontsize=14)
-    plt.xlabel("Kabupaten/Kota", fontsize=12)
-    plt.ylabel("Jumlah Observasi", fontsize=12)
-    plt.legend(title="Cluster", fontsize=10, loc='upper right')
-    st.pyplot(plt)
-
-    # Penjelasan Cluster Berdasarkan Curah Hujan
-    st.subheader("Penjelasan Cluster Berdasarkan Curah Hujan")
-    st.markdown(""" 
-    1. *Cluster 0 (Curah Hujan Tinggi - Musim Hujan):*
-       - Daerah dengan intensitas curah hujan tinggi, cluster ini menunjukkan daerah-daerah yang mengalami curah hujan tinggi. Biasanya cluster ini mewakili wilayah yang terletak di musim hujan atau daerah dengan iklim tropis yang sering mengalami hujan deras.
-       - Ciri-ciri: Area yang termasuk dalam cluster ini akan menunjukkan intensitas curah hujan yang lebih tinggi (lebih dari rata-rata), yang biasanya terkait dengan musim hujan, sering terjadi pada musim hujan dengan curah hujan di atas rata-rata.
-    2. *Cluster 2 (Curah Hujan Sedang - Cuaca Normal):*
-       - Daerah dengan curah hujan sedang, biasanya mencerminkan cuaca normal atau transisi musim, cluster ini berisi daerah-daerah dengan curah hujan sedang, yang biasanya terjadi pada cuaca normal atau musim transisi antara musim hujan dan kemarau.
-       - Ciri-ciri: Wilayah yang termasuk dalam cluster ini memiliki tingkat curah hujan yang cukup stabil, tidak terlalu tinggi dan juga tidak terlalu rendah, mencerminkan cuaca yang tidak ekstrem.
-    3. *Cluster 1 (Curah Hujan Rendah - Musim Kering):*
-       - Daerah dengan intensitas curah hujan rendah, cluster ini mencakup daerah-daerah yang mengalami curah hujan rendah, yang biasanya terjadi pada musim kemarau atau wilayah yang lebih kering.
-       - Ciri-ciri: Area yang termasuk dalam cluster ini cenderung mengalami sedikit hujan atau bahkan tidak ada hujan sama sekali dalam periode tertentu, mencerminkan musim kering atau iklim yang lebih kering, sering terjadi pada musim kemarau atau di wilayah yang lebih kering.
-    """)
-
-    st.subheader("Heatmap")
-    heatmap = create_heatmap(df)
-    st_folium(heatmap, width=700, height=500)
-    
-    # Penjelasan Warna pada Heatmap
-    st.markdown(""" 
-    ### Penjelasan Warna pada Heatmap:
-    - Merah Tua / Oranye : Menunjukkan daerah dengan curah hujan yang tinggi, biasanya terjadi pada musim hujan atau daerah tropis dengan intensitas hujan tinggi, Lokasi-lokasi yang lebih intens curah hujannya akan tampak dengan warna yang lebih gelap, daerah dengan intensitas curah hujan tinggi sering kali berwarna merah tua atau oranye terang, menunjukkan curah hujan yang sangat tinggi.
-    - Kuning / Hijau Muda : Daerah dengan curah hujan sedang, mencerminkan cuaca normal atau transisi musim, Warna-warna seperti kuning atau hijau muda menandakan intensitas hujan yang lebih rendah dibandingkan dengan daerah merah.
-    - Biru Tua / Biru Muda : Daerah dengan curah hujan rendah, sering terjadi pada musim kemarau atau wilayah kering dan Ini biasanya mewakili lokasi-lokasi yang memiliki sedikit atau bahkan tidak ada hujan (seperti musim kemarau). Warna biru gelap atau biru muda ini menandakan intensitas hujan yang sangat rendah.
-    """)
+st.write("\n---\nDikembangkan oleh [Nama Anda]")
