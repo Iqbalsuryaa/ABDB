@@ -9,16 +9,53 @@ import folium
 from streamlit_folium import st_folium
 import seaborn as sns
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import LabelEncoder
-from folium import plugins
 import joblib
+
+
+# Fungsi untuk memuat data
+def load_data():
+    # Misalkan data ini diambil dari file CSV yang di-upload
+    uploaded_file = st.file_uploader("Upload Dataset (format .csv):", type="csv")
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        return df
+    else:
+        st.error("Silakan unggah file dataset.")
+        return None
+
+# Fungsi untuk metode Elbow pada K-Means
+def elbow_method(df):
+    # Mencoba berbagai nilai K untuk menemukan yang terbaik
+    distortions = []
+    K_range = range(1, 11)
+    for k in K_range:
+        kmeans = KMeans(n_clusters=k, random_state=42)
+        kmeans.fit(df)
+        distortions.append(kmeans.inertia_)
+    
+    # Plot hasil Elbow
+    plt.figure(figsize=(10, 6))
+    plt.plot(K_range, distortions, marker='o')
+    plt.title('Metode Elbow untuk Menentukan K')
+    plt.xlabel('Jumlah Cluster (K)')
+    plt.ylabel('Distorsi')
+    plt.grid(True)
+    st.pyplot(plt)
+
+# Fungsi untuk membuat Heatmap
+def create_heatmap(df):
+    # Menggunakan folium untuk membuat heatmap (asumsi df memiliki kolom Latitude dan Longitude)
+    m = folium.Map(location=[df['Latitude'].mean(), df['Longitude'].mean()], zoom_start=6)
+    heat_data = [[row['Latitude'], row['Longitude']] for index, row in df.iterrows()]
+    folium.plugins.HeatMap(heat_data).add_to(m)
+    return m
 
 
 # Fungsi utama aplikasi
 st.title('Aplikasi Cuaca dan Prediksi')
 
 # Sidebar menu
-menu = st.sidebar.selectbox("Pengaturan", ["Home", "Prediksi Dengan Metode ARIMA", "Klasifikasi Citra Dengan Metode CNN", "Klasifikasi Dengan Metode Navie Bayes", "Clustering K-Means"])
+menu = st.sidebar.selectbox("Pengaturan", ["Home", "Prediksi Dengan Metode ARIMA", "Klasifikasi Citra Dengan Metode CNN", "Klasifikasi Dengan Metode Naive Bayes", "Clustering K-Means"])
 
 if menu == "Home":
     st.markdown(
@@ -170,26 +207,13 @@ elif menu == "Klasifikasi Dengan Metode Navie Bayes":
 
     # Buat input field untuk pengguna
     user_input = {}
-    for col in data.columns[:-1]:
-        if data[col].dtype == 'object':
-            user_input[col] = st.text_input(f"{col}", "Masukkan nilai")
-        else:
-            user_input[col] = st.number_input(f"{col}", value=0.0)
+    user_input['Feature1'] = st.number_input("Masukkan nilai Fitur 1:")
+    user_input['Feature2'] = st.number_input("Masukkan nilai Fitur 2:")
+    user_input['Feature3'] = st.number_input("Masukkan nilai Fitur 3:")
+    # (Lanjutkan dengan inputan lainnya sesuai dataset)
 
-    if st.button("Klasifikasikan Cuaca"):
-        try:
-            processed_input = preprocess_input(data, user_input)
-            prediction = model.predict(processed_input)
-            label_encoder = LabelEncoder()
-            label_encoder.fit(data['WeatherType'])
-            predicted_label = label_encoder.inverse_transform(prediction)[0]
-            st.success(f"Jenis Cuaca yang Diprediksi: {predicted_label}")
-
-        except Exception as e:
-            st.error(f"Terjadi kesalahan: {e}")
-
-elif menu == "Clustering Dengan Metode K-Means":
-    st.title("Clustering Curah Hujan dengan Metode K-Means")
-    st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
-
-   
+    if st.button("Prediksi"):
+        # Preprocessing data
+        X_encoded = preprocess_input(data, user_input)
+        prediction = model.predict(X_encoded)
+        st.write(f"Jenis cuaca yang diprediksi: {prediction[0]}")
