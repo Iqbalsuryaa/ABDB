@@ -192,9 +192,9 @@ elif menu == "Clustering Dengan Metode K-Means":
     st.write("### Clustering Curah Hujan dengan Metode K-Means")
 
     # Fungsi untuk memuat data
-    @st.cache
     def load_data():
-        return pd.read_csv('Hasilcluster_result.csv')
+    return pd.read_csv('Hasilcluster_result.csv')
+
 
     # Fungsi untuk menampilkan metode elbow
     def elbow_method(data):
