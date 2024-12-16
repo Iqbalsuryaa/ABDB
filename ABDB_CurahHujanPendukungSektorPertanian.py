@@ -288,7 +288,6 @@ elif menu == "Clustering Dengan Metode K-Means":
     st.title("Clustering Curah Hujan dengan Metode K-Means")
     st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
 
-    # Load Data
     df = load_data()
     cleaned_kota = df.drop(columns=['Tanggal', 'Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car'])
     encoder = LabelEncoder()
