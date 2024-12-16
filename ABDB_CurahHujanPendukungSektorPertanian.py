@@ -130,6 +130,7 @@ elif menu == "Prediksi Dengan Metode ARIMA":
     st.title("Prediksi Curah Hujan dengan Metode ARIMA")
     st.write("Halaman ini akan berisi implementasi prediksi curah hujan dengan ARIMA.")
     
+        # Upload dataset
     uploaded_file = st.file_uploader("Upload Dataset (format .xlsx):", type="xlsx")
     if uploaded_file is not None:
         df = pd.read_excel(uploaded_file)
@@ -220,7 +221,7 @@ elif menu == "Klasifikasi Dengan Navie Bayes":
     st.title("Klasifikasi Cuaca Curah Hujan menggunakan Navie Bayes")
     st.write("Halaman ini akan berisi implementasi klasifikasi cuaca dengan  Navie Bayes.")
     
-    # Muat model
+# Muat model
 MODEL_PATH = "naive_bayes_model.pkl"
 model = joblib.load(MODEL_PATH)
 
@@ -277,6 +278,12 @@ if st.button("Klasifikasikan Cuaca"):
 
     except Exception as e:
         st.error(f"Terjadi kesalahan: {e}")
+
+st.write("\n---\n**Informasi Model**")
+st.write(f"Lokasi model: {MODEL_PATH}")
+st.write(f"Lokasi data: {DATA_PATH}")
+
+st.write("\n---\nDikembangkan oleh [M. Hasan basri]")
 
 elif menu == "Clustering Dengan Metode K-Means":
     st.title("Clustering Curah Hujan dengan Metode K-Means")
