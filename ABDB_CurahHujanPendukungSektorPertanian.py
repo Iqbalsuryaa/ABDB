@@ -169,75 +169,47 @@ elif menu == "Visualisasi Heatmap":
 
 elif menu == "Clustering K-Means":
     # Fungsi untuk memuat data
-    @st.cache_data
-    def load_data():
-        return pd.read_csv('Hasilcluster_result.csv')
+@st.cache_data
+def load_data():
+    return pd.read_csv('Hasilcluster_result.csv')
 
-    # Fungsi untuk menampilkan metode elbow
-    def elbow_method(data):
-        wcss = []
-        for n_clusters in range(1, 11):
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-            kmeans.fit(data)
-            wcss.append(kmeans.inertia_)
-        plt.figure(figsize=(8, 6))
-        plt.plot(range(1, 11), wcss, marker='o', color='b')
-        plt.title('Metode Elbow K-Means')
-        plt.xlabel('Jumlah Cluster')
-        plt.ylabel('WCSS')
-        st.pyplot(plt)
+# Fungsi untuk menampilkan metode elbow
+def elbow_method(data):
+    wcss = []
+    for n_clusters in range(1, 11):
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        kmeans.fit(data)
+        wcss.append(kmeans.inertia_)
+    plt.figure(figsize=(8, 6))
+    plt.plot(range(1, 11), wcss, marker='o', color='b')
+    plt.title('Metode Elbow K-Means')
+    plt.xlabel('Jumlah Cluster')
+    plt.ylabel('WCSS')
+    st.pyplot(plt)
 
-    # Fungsi untuk menampilkan heatmap
-    def create_heatmap(data):
-        map_heatmap = folium.Map(
-            location=[data['Latitude'].mean(), data['Longitude'].mean()],
-            zoom_start=6
-        )
-        cluster_colors = {0: "red", 1: "blue", 2: "green"}  # Warna RGB untuk setiap cluster
-        for _, row in data.iterrows():
-            cluster = row['cluster']
-            popup_text = f"""
-            <b>Cluster:</b> {cluster}<br>
-            <b>KOTA:</b> {row['KOTA']}<br>
-            <b>Curah Hujan:</b> {row['RR']} mm<br>
-            """
-            folium.CircleMarker(
-                location=(row['Latitude'], row['Longitude']),
-                radius=5,
-                color=cluster_colors[cluster],
-                fill=True,
-                fill_color=cluster_colors[cluster],
-                fill_opacity=0.7,
-                popup=folium.Popup(popup_text, max_width=300)
-            ).add_to(map_heatmap)
-        plugins.HeatMap(data[['Latitude', 'Longitude', 'RR']].dropna().values.tolist(), radius=15).add_to(map_heatmap)
-        folium.LayerControl().add_to(map_heatmap)
-        return map_heatmap
-
-    # Proses utama untuk clustering
-    st.write("### Clustering Data Cuaca dengan K-Means")
-    uploaded_file = st.file_uploader("Upload Dataset (format .csv):", type="csv")
-
-    if uploaded_file is not None:
-        data = pd.read_csv(uploaded_file)
-        st.write("### Dataset Preview:")
-        st.write(data.head())
-
-        # Pilih jumlah cluster
-        n_clusters = st.slider("Pilih jumlah cluster:", min_value=2, max_value=10, value=3)
-
-        # Jalankan clustering
-        if st.button("Jalankan Clustering"):
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-            data['cluster'] = kmeans.fit_predict(data[['Latitude', 'Longitude', 'RR']])
-            st.write("### Hasil Clustering:")
-            st.write(data)
-
-            # Tampilkan metode elbow
-            st.write("### Metode Elbow:")
-            elbow_method(data[['Latitude', 'Longitude', 'RR']])
-
-            # Tampilkan heatmap
-            st.write("### Visualisasi Heatmap:")
-            map_heatmap = create_heatmap(data)
-            st_folium(map_heatmap, width=700, height=500)
+# Fungsi untuk menampilkan heatmap
+def create_heatmap(data):
+    map_heatmap = folium.Map(
+        location=[data['Latitude'].mean(), data['Longitude'].mean()],
+        zoom_start=6
+    )
+    cluster_colors = {0: "red", 1: "blue", 2: "green"}  # Warna RGB untuk setiap cluster
+    for _, row in data.iterrows():
+        cluster = row['cluster']
+        popup_text = f"""
+        <b>Cluster:</b> {cluster}<br>
+        <b>KOTA:</b> {row['KOTA']}<br>
+        <b>Curah Hujan:</b> {row['RR']} mm<br>
+        """
+        folium.CircleMarker(
+            location=(row['Latitude'], row['Longitude']),
+            radius=5,
+            color=cluster_colors[cluster],
+            fill=True,
+            fill_color=cluster_colors[cluster],
+            fill_opacity=0.7,
+            popup=folium.Popup(popup_text, max_width=300)
+        ).add_to(map_heatmap)
+    plugins.HeatMap(data[['Latitude', 'Longitude', 'RR']].dropna().values.tolist(), radius=15).add_to(map_heatmap)
+    folium.LayerControl().add_to(map_heatmap)
+    return map_heatmap
