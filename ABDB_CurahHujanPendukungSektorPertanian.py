@@ -190,4 +190,3 @@ elif menu == "Klasifikasi Dengan Metode Navie Bayes":
 
 elif menu == "Clustering Dengan Metode K-Means":
     st.write("### Clustering Curah Hujan dengan Metode K-Means")
-    st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
