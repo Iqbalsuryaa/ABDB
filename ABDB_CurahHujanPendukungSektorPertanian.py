@@ -188,7 +188,7 @@ elif menu == "Klasifikasi Dengan Metode Navie Bayes":
         except Exception as e:
             st.error(f"Terjadi kesalahan: {e}")
 
-    elif menu == "Clustering Dengan Metode K-Means":
+elif menu == "Clustering Dengan Metode K-Means":
     st.write("### Clustering Curah Hujan dengan Metode K-Means")
 
     # Fungsi untuk memuat data
@@ -235,3 +235,4 @@ elif menu == "Klasifikasi Dengan Metode Navie Bayes":
         for _, row in data.iterrows():
             folium.Marker([row['latitude'], row['longitude']], popup=f"Cluster: {row['Cluster']}").add_to(map)
         st_folium(map, width=700, height=500)
+
