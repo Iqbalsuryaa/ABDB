@@ -4,9 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import LabelEncoder
-from statsmodels.tsa.arima.model import ARIMA
-import numpy as np
-from folium import Map, plugins
+import folium
+from folium import plugins
 from streamlit_folium import st_folium
 
 # Fungsi untuk memuat data
@@ -30,7 +29,10 @@ def elbow_method(data):
 
 # Fungsi untuk menampilkan heatmap
 def create_heatmap(data):
-    map_heatmap = Map(location=[data['Latitude'].mean(), data['Longitude'].mean()], zoom_start=6)
+    map_heatmap = folium.Map(
+        location=[data['Latitude'].mean(), data['Longitude'].mean()],
+        zoom_start=6
+    )
     cluster_colors = {0: "red", 1: "blue", 2: "green"}  # Warna RGB untuk setiap cluster
     for _, row in data.iterrows():
         cluster = row['cluster']
@@ -49,6 +51,7 @@ def create_heatmap(data):
             popup=folium.Popup(popup_text, max_width=300)
         ).add_to(map_heatmap)
     plugins.HeatMap(data[['Latitude', 'Longitude', 'RR']].dropna().values.tolist(), radius=15).add_to(map_heatmap)
+    folium.LayerControl().add_to(map_heatmap)
     return map_heatmap
 
 # Fungsi untuk halaman Home
@@ -78,47 +81,28 @@ def home():
         """,
         unsafe_allow_html=True,
     )
-    st.write("""
-        Arsitektur sistem ini menggambarkan alur kerja aplikasi dari pengambilan data,
-        preprocessing, hingga analisis. Data curah hujan diolah menggunakan beberapa
-        metode untuk menghasilkan prediksi yang akurat.
-    """)
-    st.subheader("Insight")
-    st.write("""
-        - Analisis Tren: Curah hujan cenderung meningkat di musim penghujan.
-        - Pola Cuaca: Suhu dan kelembaban memiliki korelasi signifikan terhadap curah hujan.
-        - Rekomendasi Data: Data curah hujan dan cuaca perlu diupdate secara berkala untuk akurasi lebih baik.
-    """)
-    st.subheader("Decision")
-    st.write("""
-        - Keputusan: Berdasarkan prediksi curah hujan, disarankan menanam padi pada bulan Desember.
-        - Konteks: Wilayah dengan kelembaban di atas 80% dan curah hujan tinggi cocok untuk pertanian basah.
-    """)
-    st.subheader("Conclusion")
-    st.write("""
-        - Kesimpulan: Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
-        - Tindak Lanjut: Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
-    """)
 
-# Fungsi Prediksi ARIMA
-def arima_predict(data):
-    model = ARIMA(data['RR'], order=(5, 1, 0))
-    model_fit = model.fit()
-    forecast = model_fit.forecast(steps=5)
-    st.write("Prediksi Curah Hujan 5 Hari Ke Depan:")
-    st.write(forecast)
+# Sidebar Menu
+st.sidebar.title("Pengaturan")
+menu = st.sidebar.radio(
+    "Pilih Menu:",
+    (
+        "Home",
+        "Prediksi Dengan Metode ARIMA",
+        "Klasifikasi Citra Dengan Metode CNN",
+        "Klasifikasi Dengan Decision Trees",
+        "Clustering Dengan Metode K-Means",
+    )
+)
 
-# Fungsi untuk halaman ARIMA
-def arima_page():
-    st.title("Prediksi Curah Hujan dengan Metode ARIMA")
-    st.write("Halaman ini berisi implementasi prediksi curah hujan dengan metode ARIMA.")
-    df = pd.read_csv('Hasilcluster_result.csv')
-    arima_predict(df)
-
-# Fungsi untuk halaman Clustering
-def clustering_page():
+# Menentukan menu yang dipilih
+if menu == "Home":
+    home()
+elif menu == "Clustering Dengan Metode K-Means":
     st.title("Clustering Curah Hujan dengan Metode K-Means")
-    st.write("Halaman ini berisi implementasi clustering data curah hujan dengan K-Means.")
+    st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
+
+    # Load Data
     df = load_data()
     cleaned_kota = df.drop(columns=['Tanggal', 'Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car'])
     encoder = LabelEncoder()
@@ -126,68 +110,10 @@ def clustering_page():
 
     st.subheader("Metode Elbow")
     elbow_method(cleaned_kota)
-
     # Hasil Clustering
     st.subheader("Hasil Clustering K-Means")
-    rename = {0: 2, 1: 0, 2: 1}
-    df['cluster'] = df['cluster'].replace(rename)
-    st.markdown(""" 
-    ### Cluster Berdasarkan Curah Hujan:
-    1. *Cluster 0*: Curah hujan tinggi (musim hujan).
-    2. *Cluster 2*: Curah hujan sedang (cuaca normal).
-    3. *Cluster 1*: Curah hujan rendah (musim kering).
-    """)
     st.dataframe(df.head())
-    
-    st.subheader("Statistik Deskriptif per Cluster")
-    col_drop = ['Tanggal', 'ddd_car', 'Latitude', 'Longitude', 'KOTA']
-    desc_stats = (
-        df.drop(col_drop, axis=1)
-        .groupby('cluster')
-        .aggregate(['mean', 'std', 'min', 'median', 'max'])
-        .transpose()
-    )
-    st.dataframe(desc_stats)
-
-    st.subheader("Distribusi Cluster per Kabupaten")
-    kota_cluster = df.groupby(['cluster', 'KOTA']).size().reset_index(name='Count')
-    plt.figure(figsize=(10, 6))
-    sns.barplot(data=kota_cluster, x='KOTA', y='Count', hue='cluster', palette='viridis')
-    plt.xticks(rotation=45, ha='right', fontsize=8)
-    plt.title("Distribusi Cluster per Kabupaten", fontsize=14)
-    plt.xlabel("Kabupaten/Kota", fontsize=12)
-    plt.ylabel("Jumlah Observasi", fontsize=12)
-    plt.legend(title="Cluster", fontsize=10, loc='upper right')
-    st.pyplot(plt)
-
-    # Penjelasan Cluster Berdasarkan Curah Hujan
-    st.subheader("Penjelasan Cluster Berdasarkan Curah Hujan")
-    st.markdown(""" 
-    1. *Cluster 0 (Curah Hujan Tinggi - Musim Hujan):*
-       - Daerah dengan intensitas curah hujan tinggi, cluster ini menunjukkan daerah-daerah yang mengalami curah hujan tinggi.
-    2. *Cluster 2 (Curah Hujan Sedang - Cuaca Normal):*
-       - Daerah dengan curah hujan sedang, biasanya mencerminkan cuaca normal atau transisi musim.
-    3. *Cluster 1 (Curah Hujan Rendah - Musim Kering):*
-       - Daerah dengan intensitas curah hujan rendah, cluster ini mencakup daerah-daerah yang mengalami curah hujan rendah.
-    """)
-
-    st.subheader("Heatmap")
-    heatmap = create_heatmap(df)
-    st_folium(heatmap, width=700)
-
-# Sidebar Menu
-menu = st.sidebar.selectbox("Pengaturan", ["Home", "Prediksi Dengan Metode ARIMA", "Klasifikasi Citra Dengan Metode CNN", "Klasifikasi Dengan Metode Navie Bayes", "Clustering K-Means"])
-
-# Menentukan menu yang dipilih
-if menu == "Home":
-    home()
-elif menu == "Prediksi Dengan Metode ARIMA":
-    arima_page()
-elif menu == "Klasifikasi Citra Dengan Metode CNN":
-    st.title("Klasifikasi Citra Awan Curah Hujan dengan Metode CNN")
-    st.write("Halaman ini akan berisi implementasi klasifikasi citra awan dengan CNN.")
-elif menu == "Klasifikasi Dengan Metode Navie Bayes":
-    st.title("Klasifikasi Cuaca Curah Hujan menggunakan Metode Naive Bayes")
-    st.write("Halaman ini akan berisi implementasi klasifikasi cuaca dengan Naive Bayes.")
-elif menu == "Clustering K-Means":
-    clustering_page()
+    # Hasil Visualisasi Cluster
+    st.write("### Visualisasi Heatmap")
+    map_heatmap = create_heatmap(df)
+    st_folium(map_heatmap, width=800, height=500)
