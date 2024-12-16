@@ -20,6 +20,33 @@ st.title('Aplikasi Cuaca dan Prediksi')
 # Sidebar menu
 menu = st.sidebar.selectbox("Pengaturan", ["Home", "Prediksi Dengan Metode ARIMA", "Klasifikasi Citra Dengan Metode CNN", "Klasifikasi Dengan Metode Navie Bayes", "Clustering K-Means"])
 
+# Fungsi untuk menampilkan heatmap
+def create_heatmap(data):
+    map_heatmap = folium.Map(
+        location=[data['Latitude'].mean(), data['Longitude'].mean()],
+        zoom_start=6
+    )
+    cluster_colors = {0: "red", 1: "blue", 2: "green"}  # Warna RGB untuk setiap cluster
+    for _, row in data.iterrows():
+        cluster = row['cluster']
+        popup_text = f"""
+        <b>Cluster:</b> {cluster}<br>
+        <b>KOTA:</b> {row['KOTA']}<br>
+        <b>Curah Hujan:</b> {row['RR']} mm<br>
+        """
+        folium.CircleMarker(
+            location=(row['Latitude'], row['Longitude']),
+            radius=5,
+            color=cluster_colors[cluster],
+            fill=True,
+            fill_color=cluster_colors[cluster],
+            fill_opacity=0.7,
+            popup=folium.Popup(popup_text, max_width=300)
+        ).add_to(map_heatmap)
+    plugins.HeatMap(data[['Latitude', 'Longitude', 'RR']].dropna().values.tolist(), radius=15).add_to(map_heatmap)
+    folium.LayerControl().add_to(map_heatmap)
+    return map_heatmap
+
 if menu == "Home":
     st.markdown(
         """
