@@ -11,6 +11,7 @@ import seaborn as sns
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import LabelEncoder
 from folium import plugins
+import joblib
 
 
 # Fungsi utama aplikasi
@@ -52,28 +53,6 @@ if menu == "Home":
         Arsitektur sistem ini menggambarkan alur kerja aplikasi dari pengambilan data,
         preprocessing, hingga analisis. Data curah hujan diolah menggunakan beberapa
         metode untuk menghasilkan prediksi yang akurat.
-        """
-    )
-    st.subheader("Insight")
-    st.write(
-        """
-        - Analisis Tren: Curah hujan cenderung meningkat di musim penghujan.
-        - Pola Cuaca: Suhu dan kelembaban memiliki korelasi signifikan terhadap curah hujan.
-        - Rekomendasi Data: Data curah hujan dan cuaca perlu diupdate secara berkala untuk akurasi lebih baik.
-        """
-    )
-    st.subheader("Decision")
-    st.write(
-        """
-        - Keputusan: Berdasarkan prediksi curah hujan, disarankan menanam padi pada bulan Desember.
-        - Konteks: Wilayah dengan kelembaban di atas 80% dan curah hujan tinggi cocok untuk pertanian basah.
-        """
-    )
-    st.subheader("Conclusion")
-    st.write(
-        """
-        - Kesimpulan: Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
-        - Tindak Lanjut: Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
         """
     )
 
@@ -163,11 +142,53 @@ elif menu == "Prediksi Dengan Metode ARIMA":
             except Exception as e:
                 st.error(f"Terjadi kesalahan selama proses peramalan: {e}")
 
-elif menu == "Visualisasi Heatmap":
-    st.write("### Visualisasi Heatmap")
-    st.write("Fitur ini sedang dalam pengembangan.")
+elif menu == "Klasifikasi Dengan Metode Navie Bayes":
+    st.write("### Klasifikasi Cuaca Menggunakan Naive Bayes")
+
+    # Muat model Naive Bayes
+    MODEL_PATH = "naive_bayes_model.pkl"
+    model = joblib.load(MODEL_PATH)
+
+    # Muat dataset
+    DATA_PATH = "weather_classification_data.csv"
+    data = pd.read_csv(DATA_PATH)
+
+    # Fungsi preprocessing
+    def preprocess_input(df, input_data):
+        df.columns = df.columns.str.strip()
+        df = df.fillna(df.median(numeric_only=True))
+        df = df.fillna("unknown")
+        label_encoder = LabelEncoder()
+        df['WeatherType'] = label_encoder.fit_transform(df['WeatherType'])
+        df_encoded = pd.get_dummies(df, columns=[col for col in df.select_dtypes(include=['object']).columns if col != 'WeatherType'], drop_first=True)
+        X_encoded = pd.DataFrame([input_data], columns=df_encoded.drop(columns=['WeatherType']).columns).fillna(0)
+        return X_encoded
+
+    # Antarmuka aplikasi Streamlit
+    st.title("Aplikasi Klasifikasi Cuaca Menggunakan Metode Naive Bayes")
+    st.write("Aplikasi ini memprediksi jenis cuaca berdasarkan fitur input.")
+
+    # Buat input field untuk pengguna
+    user_input = {}
+    for col in data.columns[:-1]:
+        if data[col].dtype == 'object':
+            user_input[col] = st.text_input(f"{col}", "Masukkan nilai")
+        else:
+            user_input[col] = st.number_input(f"{col}", value=0.0)
+
+    if st.button("Klasifikasikan Cuaca"):
+        try:
+            processed_input = preprocess_input(data, user_input)
+            prediction = model.predict(processed_input)
+            label_encoder = LabelEncoder()
+            label_encoder.fit(data['WeatherType'])
+            predicted_label = label_encoder.inverse_transform(prediction)[0]
+            st.success(f"Jenis Cuaca yang Diprediksi: {predicted_label}")
+
+        except Exception as e:
+            st.error(f"Terjadi kesalahan: {e}")
 
 elif menu == "Clustering Dengan Metode K-Means":
     st.title("Clustering Curah Hujan dengan Metode K-Means")
-    st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
-
+    st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.") 
+    # Kode clustering disini...
