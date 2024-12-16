@@ -12,7 +12,7 @@ from folium import plugins
 from streamlit_folium import st_folium
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-
+import joblib
 
 
 # Fungsi untuk memuat data
