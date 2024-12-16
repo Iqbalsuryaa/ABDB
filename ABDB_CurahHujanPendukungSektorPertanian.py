@@ -188,52 +188,5 @@ elif menu == "Klasifikasi Dengan Metode Navie Bayes":
         except Exception as e:
             st.error(f"Terjadi kesalahan: {e}")
 
-elif menu == "Clustering Dengan Metode K-Means":
-    st.write("### Clustering Curah Hujan dengan Metode K-Means")
 
-    # Fungsi untuk memuat data
-    def load_data():
-        return pd.read_csv('Hasilcluster_result.csv')
-
-
-
-    # Fungsi untuk menampilkan metode elbow
-    def elbow_method(data):
-        wcss = []
-        for n_clusters in range(1, 11):
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-            kmeans.fit(data)
-            wcss.append(kmeans.inertia_)
-        plt.figure(figsize=(8, 6))
-        plt.plot(range(1, 11), wcss, marker='o', color='b')
-        plt.title('Metode Elbow K-Means')
-        plt.xlabel('Jumlah Cluster')
-        plt.ylabel('WCSS')
-        st.pyplot(plt)
-
-    # Muat dan tampilkan data
-    data = load_data()
-    st.write("Dataset yang digunakan:")
-    st.write(data.head())
-
-    # Tampilkan grafik elbow
-    elbow_method(data)
-
-    st.write("Pilih jumlah cluster:")
-    n_clusters = st.slider('Jumlah Cluster', min_value=2, max_value=10, value=3)
-    if st.button("Terapkan K-Means"):
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-        clusters = kmeans.fit_predict(data)
-
-        # Menambahkan hasil clustering ke dalam data
-        data['Cluster'] = clusters
-        st.write("Hasil Clustering:")
-        st.write(data)
-
-        # Visualisasi dengan peta
-        st.write("### Visualisasi Peta dengan Folium")
-        map = folium.Map(location=[-7.5, 110.0], zoom_start=6)
-        for _, row in data.iterrows():
-            folium.Marker([row['latitude'], row['longitude']], popup=f"Cluster: {row['Cluster']}").add_to(map)
-        st_folium(map, width=700, height=500)
 
