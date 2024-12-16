@@ -249,4 +249,4 @@ elif menu == "Clustering K-Means":
 
     st.subheader("Distribusi Cluster per Kabupaten")
     cluster_map = create_heatmap(df)
-    st_folium(cluster_map, width=800, height=600)
+    st_folium(cluster_map, width=700, height=500)
