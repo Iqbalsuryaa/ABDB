@@ -168,6 +168,85 @@ elif menu == "Visualisasi Heatmap":
     st.write("Fitur ini sedang dalam pengembangan.")
 
 elif menu == "Clustering K-Means":
-    st.write("### Visualisasi Heatmap")
-    st.write("Fitur ini sedang dalam pengembangan.")
+    st.write("### Visualisasi Clustering K-Means")
 
+    # Fungsi untuk memuat data
+    @st.cache_data
+    def load_data():
+        return pd.read_csv('Hasilcluster_result.csv')
+
+    # Fungsi untuk menampilkan metode elbow
+    def elbow_method(data):
+        wcss = []
+        for n_clusters in range(1, 11):
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+            kmeans.fit(data)
+            wcss.append(kmeans.inertia_)
+        plt.figure(figsize=(8, 6))
+        plt.plot(range(1, 11), wcss, marker='o', color='b')
+        plt.title('Metode Elbow K-Means')
+        plt.xlabel('Jumlah Cluster')
+        plt.ylabel('WCSS')
+        st.pyplot(plt)
+
+    # Fungsi untuk menampilkan heatmap
+    def create_heatmap(data):
+        map_heatmap = folium.Map(
+            location=[data['Latitude'].mean(), data['Longitude'].mean()],
+            zoom_start=6
+        )
+        cluster_colors = {0: "red", 1: "blue", 2: "green"}  # Warna RGB untuk setiap cluster
+        for _, row in data.iterrows():
+            cluster = row['cluster']
+            popup_text = f"""
+            <b>Cluster:</b> {cluster}<br>
+            <b>KOTA:</b> {row['KOTA']}<br>
+            <b>Curah Hujan:</b> {row['RR']} mm<br>
+            """
+            folium.CircleMarker(
+                location=(row['Latitude'], row['Longitude']),
+                radius=5,
+                color=cluster_colors[cluster],
+                fill=True,
+                fill_color=cluster_colors[cluster],
+                fill_opacity=0.7,
+                popup=folium.Popup(popup_text, max_width=300)
+            ).add_to(map_heatmap)
+        plugins.HeatMap(data[['Latitude', 'Longitude', 'RR']].dropna().values.tolist(), radius=15).add_to(map_heatmap)
+        folium.LayerControl().add_to(map_heatmap)
+        return map_heatmap
+
+    # Load Data
+    df = load_data()
+    cleaned_kota = df.drop(columns=['Tanggal', 'Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car'])
+    encoder = LabelEncoder()
+    cleaned_kota['KOTA'] = encoder.fit_transform(df['KOTA'])
+
+    st.subheader("Metode Elbow")
+    elbow_method(cleaned_kota)
+
+    # Hasil Clustering
+    st.subheader("Hasil Clustering K-Means")
+    rename = {0: 2, 1: 0, 2: 1}
+    df['cluster'] = df['cluster'].replace(rename)
+    st.markdown(""" 
+    ### Cluster Berdasarkan Curah Hujan:
+    1. *Cluster 0*: Curah hujan tinggi (musim hujan).
+    2. *Cluster 2*: Curah hujan sedang (cuaca normal).
+    3. *Cluster 1*: Curah hujan rendah (musim kering).
+    """)
+    st.dataframe(df.head())
+
+    st.subheader("Statistik Deskriptif per Cluster")
+    col_drop = ['Tanggal', 'ddd_car', 'Latitude', 'Longitude', 'KOTA']
+    desc_stats = (
+        df.drop(col_drop, axis=1)
+        .groupby('cluster')
+        .aggregate(['mean', 'std', 'min', 'median', 'max'])
+        .transpose()
+    )
+    st.dataframe(desc_stats)
+
+    st.subheader("Distribusi Cluster per Kabupaten")
+    cluster_map = create_heatmap(df)
+    st_folium(cluster_map, width=800, height=600)
