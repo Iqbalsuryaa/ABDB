@@ -163,7 +163,12 @@ elif menu == "Prediksi Dengan Metode ARIMA":
             except Exception as e:
                 st.error(f"Terjadi kesalahan selama proses peramalan: {e}")
 
-elif menu == "Visualisasi Heatmap":
+elif menu == "Klasifikasi Citra Dengan Metode CNN":
+    st.write("### Visualisasi Heatmap")
+    st.write("Fitur ini sedang dalam pengembangan.")
+
+
+elif menu == "Klasifikasi Dengan Metode Navie Bayes":
     st.write("### Visualisasi Heatmap")
     st.write("Fitur ini sedang dalam pengembangan.")
 
