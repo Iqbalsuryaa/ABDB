@@ -15,14 +15,14 @@ st.title('Aplikasi Cuaca dan Prediksi')
 menu = st.sidebar.selectbox("Pengaturan", ["Home", "Prediksi Dengan Metode ARIMA", "Klasifikasi Citra Dengan Metode CNN", "Klasifikasi Dengan", "Clustering K-Means"])
 
 if menu == "Home":
-        st.markdown(
-        """
-        <div style="text-align: center;">
-            <img src="https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/hider.png" alt="Header Banner" width="800">
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+st.markdown(
+"""
+<div style="text-align: center;">
+<img src="https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/hider.png" alt="Header Banner" width="800">
+</div>
+""",
+unsafe_allow_html=True,
+)
     st.title("Home")
     st.write("Selamat datang di aplikasi Analisis Curah Hujan Menggunakan Pendekatan Big Data untuk Mendukung Pertanian!")    
     st.subheader("Abstrak")
