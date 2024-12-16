@@ -282,10 +282,9 @@ if st.button("Klasifikasikan Cuaca"):
 st.write("\n---\n**Informasi Model**")
 st.write(f"Lokasi model: {MODEL_PATH}")
 st.write(f"Lokasi data: {DATA_PATH}")
-
 st.write("\n---\nDikembangkan oleh [M. Hasan basri]")
 
-    elif menu == "Clustering Dengan Metode K-Means":
+elif menu == "Clustering Dengan Metode K-Means":
     # kode untuk clustering K-Means
     st.title("Clustering Curah Hujan dengan Metode K-Means")
     st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
