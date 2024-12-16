@@ -188,13 +188,11 @@ elif menu == "Klasifikasi Dengan Metode Navie Bayes":
         except Exception as e:
             st.error(f"Terjadi kesalahan: {e}")
 
-elif menu == "Clustering Dengan Metode K-Means":
-    st.write("### Clustering Curah Hujan dengan Metode K-Means")
     elif menu == "Clustering Dengan Metode K-Means":
     st.write("### Clustering Curah Hujan dengan Metode K-Means")
 
     # Fungsi untuk memuat data
-    @st.cache_data
+    @st.cache
     def load_data():
         return pd.read_csv('Hasilcluster_result.csv')
 
@@ -212,90 +210,28 @@ elif menu == "Clustering Dengan Metode K-Means":
         plt.ylabel('WCSS')
         st.pyplot(plt)
 
-    # Fungsi untuk menampilkan heatmap
-    def create_heatmap(data):
-        map_heatmap = folium.Map(
-            location=[data['Latitude'].mean(), data['Longitude'].mean()],
-            zoom_start=6
-        )
-        cluster_colors = {0: "red", 1: "blue", 2: "green"}  # Warna RGB untuk setiap cluster
+    # Muat dan tampilkan data
+    data = load_data()
+    st.write("Dataset yang digunakan:")
+    st.write(data.head())
+
+    # Tampilkan grafik elbow
+    elbow_method(data)
+
+    st.write("Pilih jumlah cluster:")
+    n_clusters = st.slider('Jumlah Cluster', min_value=2, max_value=10, value=3)
+    if st.button("Terapkan K-Means"):
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        clusters = kmeans.fit_predict(data)
+
+        # Menambahkan hasil clustering ke dalam data
+        data['Cluster'] = clusters
+        st.write("Hasil Clustering:")
+        st.write(data)
+
+        # Visualisasi dengan peta
+        st.write("### Visualisasi Peta dengan Folium")
+        map = folium.Map(location=[-7.5, 110.0], zoom_start=6)
         for _, row in data.iterrows():
-            cluster = row['cluster']
-            popup_text = f"""
-            <b>Cluster:</b> {cluster}<br>
-            <b>KOTA:</b> {row['KOTA']}<br>
-            <b>Curah Hujan:</b> {row['RR']} mm<br>
-            """
-            folium.CircleMarker(
-                location=(row['Latitude'], row['Longitude']),
-                radius=5,
-                color=cluster_colors[cluster],
-                fill=True,
-                fill_color=cluster_colors[cluster],
-                fill_opacity=0.7,
-                popup=folium.Popup(popup_text, max_width=300)
-            ).add_to(map_heatmap)
-        plugins.HeatMap(data[['Latitude', 'Longitude', 'RR']].dropna().values.tolist(), radius=15).add_to(map_heatmap)
-        folium.LayerControl().add_to(map_heatmap)
-        return map_heatmap
-
-    # Load the data
-    df = load_data()
-    cleaned_kota = df.drop(columns=['Tanggal', 'Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car'])
-    encoder = LabelEncoder()
-    cleaned_kota['KOTA'] = encoder.fit_transform(df['KOTA'])
-
-    # Menampilkan Metode Elbow
-    st.subheader("Metode Elbow")
-    elbow_method(cleaned_kota)
-
-    # Hasil Clustering
-    st.subheader("Hasil Clustering K-Means")
-    rename = {0: 2, 1: 0, 2: 1}
-    df['cluster'] = df['cluster'].replace(rename)
-    st.markdown(""" 
-    ### Cluster Berdasarkan Curah Hujan:
-    1. *Cluster 0*: Curah hujan tinggi (musim hujan).
-    2. *Cluster 2*: Curah hujan sedang (cuaca normal).
-    3. *Cluster 1*: Curah hujan rendah (musim kering).
-    """)
-    st.dataframe(df.head())
-
-    # Statistik Deskriptif per Cluster
-    st.subheader("Statistik Deskriptif per Cluster")
-    col_drop = ['Tanggal', 'ddd_car', 'Latitude', 'Longitude', 'KOTA']
-    desc_stats = (
-        df.drop(col_drop, axis=1)
-        .groupby('cluster')
-        .aggregate(['mean', 'std', 'min', 'median', 'max'])
-        .transpose()
-    )
-    st.dataframe(desc_stats)
-
-    # Distribusi Cluster per Kabupaten
-    st.subheader("Distribusi Cluster per Kabupaten")
-    kota_cluster = df.groupby(['cluster', 'KOTA']).size().reset_index(name='Count')
-    plt.figure(figsize=(10, 6))
-    sns.barplot(data=kota_cluster, x='KOTA', y='Count', hue='cluster', palette='viridis')
-    plt.xticks(rotation=45, ha='right', fontsize=8)
-    plt.title("Distribusi Cluster per Kabupaten", fontsize=14)
-    plt.xlabel("Kabupaten/Kota", fontsize=12)
-    plt.ylabel("Jumlah Observasi", fontsize=12)
-    plt.legend(title="Cluster", fontsize=10, loc='upper right')
-    st.pyplot(plt)
-
-    # Penjelasan Cluster Berdasarkan Curah Hujan
-    st.subheader("Penjelasan Cluster Berdasarkan Curah Hujan")
-    st.markdown(""" 
-    1. *Cluster 0 (Curah Hujan Tinggi - Musim Hujan):*
-       - Daerah dengan intensitas curah hujan tinggi, cluster ini menunjukkan daerah-daerah yang mengalami curah hujan tinggi. Biasanya cluster ini mewakili daerah-daerah dengan curah hujan yang tinggi selama musim hujan.
-    2. *Cluster 2 (Curah Hujan Sedang - Cuaca Normal):*
-       - Cluster ini mencakup daerah dengan curah hujan sedang dan bisa menggambarkan kondisi cuaca normal.
-    3. *Cluster 1 (Curah Hujan Rendah - Musim Kering):*
-       - Daerah yang mengalami curah hujan rendah, biasanya ditemukan pada musim kering atau musim panas.
-    """)
-
-    # Menampilkan Heatmap Clustering
-    st.subheader("Heatmap Clustering Curah Hujan")
-    map_heatmap = create_heatmap(df)
-    st_folium(map_heatmap, width=725)
+            folium.Marker([row['latitude'], row['longitude']], popup=f"Cluster: {row['Cluster']}").add_to(map)
+        st_folium(map, width=700, height=500)
