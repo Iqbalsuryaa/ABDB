@@ -193,7 +193,8 @@ elif menu == "Clustering Dengan Metode K-Means":
 
     # Fungsi untuk memuat data
     def load_data():
-    return pd.read_csv('Hasilcluster_result.csv')
+        return pd.read_csv('Hasilcluster_result.csv')
+
 
 
     # Fungsi untuk menampilkan metode elbow
