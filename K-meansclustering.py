@@ -128,6 +128,7 @@ elif menu == "Klasifikasi Citra Dengan Metode CNN":
 elif menu == "Klasifikasi Dengan Decision Trees":
     st.title("Klasifikasi Cuaca Curah Hujan menggunakan Decision Trees")
     st.write("Halaman ini akan berisi implementasi klasifikasi cuaca dengan Decision Trees.")
+    
 elif menu == "Clustering Dengan Metode K-Means":
     st.title("Clustering Curah Hujan dengan Metode K-Means")
     st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
