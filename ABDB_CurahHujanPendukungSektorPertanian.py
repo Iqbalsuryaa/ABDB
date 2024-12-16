@@ -9,53 +9,16 @@ import folium
 from streamlit_folium import st_folium
 import seaborn as sns
 from sklearn.cluster import KMeans
+from sklearn.preprocessing import LabelEncoder
+from folium import plugins
 import joblib
-
-
-# Fungsi untuk memuat data
-def load_data():
-    # Misalkan data ini diambil dari file CSV yang di-upload
-    uploaded_file = st.file_uploader("Upload Dataset (format .csv):", type="csv")
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-        return df
-    else:
-        st.error("Silakan unggah file dataset.")
-        return None
-
-# Fungsi untuk metode Elbow pada K-Means
-def elbow_method(df):
-    # Mencoba berbagai nilai K untuk menemukan yang terbaik
-    distortions = []
-    K_range = range(1, 11)
-    for k in K_range:
-        kmeans = KMeans(n_clusters=k, random_state=42)
-        kmeans.fit(df)
-        distortions.append(kmeans.inertia_)
-    
-    # Plot hasil Elbow
-    plt.figure(figsize=(10, 6))
-    plt.plot(K_range, distortions, marker='o')
-    plt.title('Metode Elbow untuk Menentukan K')
-    plt.xlabel('Jumlah Cluster (K)')
-    plt.ylabel('Distorsi')
-    plt.grid(True)
-    st.pyplot(plt)
-
-# Fungsi untuk membuat Heatmap
-def create_heatmap(df):
-    # Menggunakan folium untuk membuat heatmap (asumsi df memiliki kolom Latitude dan Longitude)
-    m = folium.Map(location=[df['Latitude'].mean(), df['Longitude'].mean()], zoom_start=6)
-    heat_data = [[row['Latitude'], row['Longitude']] for index, row in df.iterrows()]
-    folium.plugins.HeatMap(heat_data).add_to(m)
-    return m
 
 
 # Fungsi utama aplikasi
 st.title('Aplikasi Cuaca dan Prediksi')
 
 # Sidebar menu
-menu = st.sidebar.selectbox("Pengaturan", ["Home", "Prediksi Dengan Metode ARIMA", "Klasifikasi Citra Dengan Metode CNN", "Klasifikasi Dengan Metode Naive Bayes", "Clustering K-Means"])
+menu = st.sidebar.selectbox("Pengaturan", ["Home", "Prediksi Dengan Metode ARIMA", "Klasifikasi Citra Dengan Metode CNN", "Klasifikasi Dengan Metode Navie Bayes", "Clustering K-Means"])
 
 if menu == "Home":
     st.markdown(
@@ -207,13 +170,100 @@ elif menu == "Klasifikasi Dengan Metode Navie Bayes":
 
     # Buat input field untuk pengguna
     user_input = {}
-    user_input['Feature1'] = st.number_input("Masukkan nilai Fitur 1:")
-    user_input['Feature2'] = st.number_input("Masukkan nilai Fitur 2:")
-    user_input['Feature3'] = st.number_input("Masukkan nilai Fitur 3:")
-    # (Lanjutkan dengan inputan lainnya sesuai dataset)
+    for col in data.columns[:-1]:
+        if data[col].dtype == 'object':
+            user_input[col] = st.text_input(f"{col}", "Masukkan nilai")
+        else:
+            user_input[col] = st.number_input(f"{col}", value=0.0)
 
-    if st.button("Prediksi"):
-        # Preprocessing data
-        X_encoded = preprocess_input(data, user_input)
-        prediction = model.predict(X_encoded)
-        st.write(f"Jenis cuaca yang diprediksi: {prediction[0]}")
+    if st.button("Klasifikasikan Cuaca"):
+        try:
+            processed_input = preprocess_input(data, user_input)
+            prediction = model.predict(processed_input)
+            label_encoder = LabelEncoder()
+            label_encoder.fit(data['WeatherType'])
+            predicted_label = label_encoder.inverse_transform(prediction)[0]
+            st.success(f"Jenis Cuaca yang Diprediksi: {predicted_label}")
+
+        except Exception as e:
+            st.error(f"Terjadi kesalahan: {e}")
+
+elif menu == "Clustering Dengan Metode K-Means":
+    st.title("Clustering Curah Hujan dengan Metode K-Means")
+    st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
+
+    # Load Data
+    df = load_data()
+    cleaned_kota = df.drop(columns=['Tanggal', 'Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car'])
+    encoder = LabelEncoder()
+    cleaned_kota['KOTA'] = encoder.fit_transform(df['KOTA'])
+
+    st.subheader("Metode Elbow")
+    elbow_method(cleaned_kota)
+    # Hasil Clustering
+    st.subheader("Hasil Clustering K-Means")
+    rename = {0: 2, 1: 0, 2: 1}
+    df['cluster'] = df['cluster'].replace(rename)
+    st.markdown(""" 
+    ### Cluster Berdasarkan Curah Hujan:
+    1. *Cluster 0*: Curah hujan tinggi (musim hujan).
+    2. *Cluster 2*: Curah hujan sedang (cuaca normal).
+    3. *Cluster 1*: Curah hujan rendah (musim kering).
+    """)
+    st.dataframe(df.head())
+    
+    df['cluster'] = df['cluster'].replace(rename)
+    st.markdown(""" 
+    ### Cluster Berdasarkan Curah Hujan:
+    1. *Cluster 0*: Curah hujan tinggi (musim hujan).
+    2. *Cluster 2*: Curah hujan sedang (cuaca normal).
+    3. *Cluster 1*: Curah hujan rendah (musim kering).
+    """)
+
+    
+    st.subheader("Statistik Deskriptif per Cluster")
+    col_drop = ['Tanggal', 'ddd_car', 'Latitude', 'Longitude', 'KOTA']
+    desc_stats = (
+        df.drop(col_drop, axis=1)
+        .groupby('cluster')
+        .aggregate(['mean', 'std', 'min', 'median', 'max'])
+        .transpose()
+    )
+    st.dataframe(desc_stats)
+
+    st.subheader("Distribusi Cluster per Kabupaten")
+    kota_cluster = df.groupby(['cluster', 'KOTA']).size().reset_index(name='Count')
+    plt.figure(figsize=(10, 6))
+    sns.barplot(data=kota_cluster, x='KOTA', y='Count', hue='cluster', palette='viridis')
+    plt.xticks(rotation=45, ha='right', fontsize=8)
+    plt.title("Distribusi Cluster per Kabupaten", fontsize=14)
+    plt.xlabel("Kabupaten/Kota", fontsize=12)
+    plt.ylabel("Jumlah Observasi", fontsize=12)
+    plt.legend(title="Cluster", fontsize=10, loc='upper right')
+    st.pyplot(plt)
+
+    # Penjelasan Cluster Berdasarkan Curah Hujan
+    st.subheader("Penjelasan Cluster Berdasarkan Curah Hujan")
+    st.markdown(""" 
+    1. *Cluster 0 (Curah Hujan Tinggi - Musim Hujan):*
+       - Daerah dengan intensitas curah hujan tinggi, cluster ini menunjukkan daerah-daerah yang mengalami curah hujan tinggi. Biasanya cluster ini mewakili wilayah yang terletak di musim hujan atau daerah dengan iklim tropis yang sering mengalami hujan deras.
+       - Ciri-ciri: Area yang termasuk dalam cluster ini akan menunjukkan intensitas curah hujan yang lebih tinggi (lebih dari rata-rata), yang biasanya terkait dengan musim hujan, sering terjadi pada musim hujan dengan curah hujan di atas rata-rata.
+    2. *Cluster 2 (Curah Hujan Sedang - Cuaca Normal):*
+       - Daerah dengan curah hujan sedang, biasanya mencerminkan cuaca normal atau transisi musim, cluster ini berisi daerah-daerah dengan curah hujan sedang, yang biasanya terjadi pada cuaca normal atau musim transisi antara musim hujan dan kemarau.
+       - Ciri-ciri: Wilayah yang termasuk dalam cluster ini memiliki tingkat curah hujan yang cukup stabil, tidak terlalu tinggi dan juga tidak terlalu rendah, mencerminkan cuaca yang tidak ekstrem.
+    3. *Cluster 1 (Curah Hujan Rendah - Musim Kering):*
+       - Daerah dengan intensitas curah hujan rendah, cluster ini mencakup daerah-daerah yang mengalami curah hujan rendah, yang biasanya terjadi pada musim kemarau atau wilayah yang lebih kering.
+       - Ciri-ciri: Area yang termasuk dalam cluster ini cenderung mengalami sedikit hujan atau bahkan tidak ada hujan sama sekali dalam periode tertentu, mencerminkan musim kering atau iklim yang lebih kering, sering terjadi pada musim kemarau atau di wilayah yang lebih kering.
+    """)
+
+    st.subheader("Heatmap")
+    heatmap = create_heatmap(df)
+    st_folium(heatmap, width=700, height=500)
+    
+    # Penjelasan Warna pada Heatmap
+    st.markdown(""" 
+    ### Penjelasan Warna pada Heatmap:
+    - Merah Tua / Oranye : Menunjukkan daerah dengan curah hujan yang tinggi, biasanya terjadi pada musim hujan atau daerah tropis dengan intensitas hujan tinggi, Lokasi-lokasi yang lebih intens curah hujannya akan tampak dengan warna yang lebih gelap, daerah dengan intensitas curah hujan tinggi sering kali berwarna merah tua atau oranye terang, menunjukkan curah hujan yang sangat tinggi.
+    - Kuning / Hijau Muda : Daerah dengan curah hujan sedang, mencerminkan cuaca normal atau transisi musim, Warna-warna seperti kuning atau hijau muda menandakan intensitas hujan yang lebih rendah dibandingkan dengan daerah merah.
+    - Biru Tua / Biru Muda : Daerah dengan curah hujan rendah, sering terjadi pada musim kemarau atau wilayah kering dan Ini biasanya mewakili lokasi-lokasi yang memiliki sedikit atau bahkan tidak ada hujan (seperti musim kemarau). Warna biru gelap atau biru muda ini menandakan intensitas hujan yang sangat rendah.
+    """)
