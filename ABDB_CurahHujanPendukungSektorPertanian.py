@@ -12,7 +12,7 @@ from streamlit_folium import st_folium
 st.title('Aplikasi Cuaca dan Prediksi')
 
 # Sidebar menu
-menu = st.sidebar.selectbox("Pilih Menu", ["Home", "Prediksi Dengan Metode ARIMA", "Visualisasi Heatmap", "Clustering K-Means"])
+menu = st.sidebar.selectbox("Pengaturan", ["Home", "Prediksi Dengan Metode ARIMA", "Klasifikasi Citra Dengan Metode CNN", "Klasifikasi Dengan", "Clustering K-Means"])
 
 if menu == "Home":
     st.write("### Selamat datang di aplikasi prediksi dan analisis cuaca!")
