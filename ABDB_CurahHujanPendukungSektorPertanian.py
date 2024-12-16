@@ -20,33 +20,109 @@ st.title('Aplikasi Cuaca dan Prediksi')
 # Sidebar menu
 menu = st.sidebar.selectbox("Pengaturan", ["Home", "Prediksi Dengan Metode ARIMA", "Klasifikasi Citra Dengan Metode CNN", "Klasifikasi Dengan Metode Navie Bayes", "Clustering K-Means"])
 
-# Fungsi untuk menampilkan heatmap
-def create_heatmap(data):
-    map_heatmap = folium.Map(
-        location=[data['Latitude'].mean(), data['Longitude'].mean()],
-        zoom_start=6
-    )
-    cluster_colors = {0: "red", 1: "blue", 2: "green"}  # Warna RGB untuk setiap cluster
-    for _, row in data.iterrows():
-        cluster = row['cluster']
-        popup_text = f"""
-        <b>Cluster:</b> {cluster}<br>
-        <b>KOTA:</b> {row['KOTA']}<br>
-        <b>Curah Hujan:</b> {row['RR']} mm<br>
-        """
-        folium.CircleMarker(
-            location=(row['Latitude'], row['Longitude']),
-            radius=5,
-            color=cluster_colors[cluster],
-            fill=True,
-            fill_color=cluster_colors[cluster],
-            fill_opacity=0.7,
-            popup=folium.Popup(popup_text, max_width=300)
-        ).add_to(map_heatmap)
-    plugins.HeatMap(data[['Latitude', 'Longitude', 'RR']].dropna().values.tolist(), radius=15).add_to(map_heatmap)
-    folium.LayerControl().add_to(map_heatmap)
-    return map_heatmap
+# Fungsi untuk memuat data
+def load_data():
+    # Gantilah dengan path atau pengambilan data sesuai yang Anda miliki
+    data_path = 'weather_classification_data.csv'
+    df = pd.read_csv(data_path)
+    return df
 
+# Fungsi untuk metode Elbow
+def elbow_method(df):
+    # Mencari jumlah cluster yang optimal dengan metode elbow
+    X = df.select_dtypes(include=[np.number])  # Ambil hanya kolom numerik
+    wcss = []  # List untuk menyimpan nilai WCSS
+    for i in range(1, 11):
+        kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=0)
+        kmeans.fit(X)
+        wcss.append(kmeans.inertia_)
+
+    # Plot Elbow Method
+    plt.figure(figsize=(10,6))
+    plt.plot(range(1, 11), wcss)
+    plt.title('Metode Elbow')
+    plt.xlabel('Jumlah Cluster')
+    plt.ylabel('WCSS')
+    st.pyplot()
+
+# Fungsi untuk membuat heatmap
+def create_heatmap(df):
+    # Menampilkan heatmap dari data Latitude dan Longitude
+    map_center = [df['Latitude'].mean(), df['Longitude'].mean()]
+    m = folium.Map(location=map_center, zoom_start=12)
+
+    # Menambahkan marker pada peta
+    for i, row in df.iterrows():
+        folium.CircleMarker([row['Latitude'], row['Longitude']], radius=5, color='blue', fill=True).add_to(m)
+    
+    return m
+
+elif menu == "Clustering Dengan Metode K-Means":
+    st.title("Clustering Curah Hujan dengan Metode K-Means")
+    st.write("Halaman ini akan berisi implementasi clustering data curah hujan dengan K-Means.")
+
+    # Load Data
+    df = load_data()
+
+    # Pembersihan dan persiapan data
+    cleaned_kota = df.drop(columns=['Tanggal', 'Tn', 'Tx', 'Tavg', 'RH_avg', 'RR', 'ss', 'ff_x', 'ddd_x', 'ff_avg', 'ddd_car'])
+    encoder = LabelEncoder()
+    cleaned_kota['KOTA'] = encoder.fit_transform(df['KOTA'])
+
+    st.subheader("Metode Elbow")
+    elbow_method(cleaned_kota)  # Menampilkan grafik metode Elbow
+
+    # Menentukan jumlah cluster berdasarkan metode elbow
+    k = st.number_input('Masukkan jumlah cluster yang diinginkan:', min_value=2, max_value=10, value=3)
+
+    # Melakukan clustering K-Means
+    if st.button("Lakukan Clustering"):
+        kmeans = KMeans(n_clusters=k, init='k-means++', max_iter=300, n_init=10, random_state=0)
+        df['cluster'] = kmeans.fit_predict(cleaned_kota.select_dtypes(include=[np.number]))
+
+        st.subheader("Hasil Clustering K-Means")
+        rename = {0: 2, 1: 0, 2: 1}  # Menyesuaikan cluster jika diperlukan
+        df['cluster'] = df['cluster'].replace(rename)
+        st.dataframe(df.head())
+
+        st.markdown(""" 
+        ### Cluster Berdasarkan Curah Hujan:
+        1. *Cluster 0*: Curah hujan tinggi (musim hujan).
+        2. *Cluster 2*: Curah hujan sedang (cuaca normal).
+        3. *Cluster 1*: Curah hujan rendah (musim kering).
+        """)
+
+        st.subheader("Statistik Deskriptif per Cluster")
+        col_drop = ['Tanggal', 'ddd_car', 'Latitude', 'Longitude', 'KOTA']
+        desc_stats = (
+            df.drop(col_drop, axis=1)
+            .groupby('cluster')
+            .aggregate(['mean', 'std', 'min', 'median', 'max'])
+            .transpose()
+        )
+        st.dataframe(desc_stats)
+
+        st.subheader("Distribusi Cluster per Kabupaten")
+        kota_cluster = df.groupby(['cluster', 'KOTA']).size().reset_index(name='Count')
+        plt.figure(figsize=(10, 6))
+        sns.barplot(data=kota_cluster, x='KOTA', y='Count', hue='cluster', palette='viridis')
+        plt.xticks(rotation=45, ha='right', fontsize=8)
+        plt.title("Distribusi Cluster per Kabupaten", fontsize=14)
+        plt.xlabel("Kabupaten/Kota", fontsize=12)
+        plt.ylabel("Jumlah Observasi", fontsize=12)
+        plt.legend(title="Cluster", fontsize=10, loc='upper right')
+        st.pyplot(plt)
+
+        st.subheader("Heatmap")
+        heatmap = create_heatmap(df)
+        st_folium(heatmap, width=700, height=500)
+
+        # Penjelasan Warna pada Heatmap
+        st.markdown(""" 
+        ### Penjelasan Warna pada Heatmap:
+        - Merah Tua / Oranye: Menunjukkan daerah dengan curah hujan yang tinggi.
+        - Biru: Menunjukkan daerah dengan curah hujan yang rendah.
+        """)
 if menu == "Home":
     st.markdown(
         """
