@@ -15,24 +15,26 @@ st.title('Aplikasi Cuaca dan Prediksi')
 menu = st.sidebar.selectbox("Pengaturan", ["Home", "Prediksi Dengan Metode ARIMA", "Klasifikasi Citra Dengan Metode CNN", "Klasifikasi Dengan", "Clustering K-Means"])
 
 if menu == "Home":
-st.markdown(
-"""
-<div style="text-align: center;">
-<img src="https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/hider.png" alt="Header Banner" width="800">
-</div>
-""",
-unsafe_allow_html=True,
-)
+    st.markdown(
+        """
+        <div style="text-align: center;">
+        <img src="https://raw.githubusercontent.com/Iqbalsuryaa/ABDB/main/hider.png" alt="Header Banner" width="800">
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.title("Home")
-    st.write("Selamat datang di aplikasi Analisis Curah Hujan Menggunakan Pendekatan Big Data untuk Mendukung Pertanian!")    
+    st.write("Selamat datang di aplikasi Analisis Curah Hujan Menggunakan Pendekatan Big Data untuk Mendukung Pertanian!")
     st.subheader("Abstrak")
-    st.write("""
+    st.write(
+        """
         Aplikasi ini dirancang untuk memprediksi curah hujan berdasarkan data cuaca 
         dan analisis citra awan. Berbagai metode seperti ARIMA, CNN, Decision Trees, 
         dan K-Means digunakan untuk mendukung analisis ini. Tujuannya adalah 
         untuk membantu sektor pertanian dan masyarakat dalam memahami pola cuaca 
         yang lebih baik.
-    """)
+        """
+    )
     st.subheader("Arsitektur Sistem")
     st.markdown(
         """
@@ -40,27 +42,35 @@ unsafe_allow_html=True,
         """,
         unsafe_allow_html=True,
     )
-    st.write("""
+    st.write(
+        """
         Arsitektur sistem ini menggambarkan alur kerja aplikasi dari pengambilan data,
         preprocessing, hingga analisis. Data curah hujan diolah menggunakan beberapa
         metode untuk menghasilkan prediksi yang akurat.
-    """)
+        """
+    )
     st.subheader("Insight")
-    st.write("""
+    st.write(
+        """
         - Analisis Tren: Curah hujan cenderung meningkat di musim penghujan.
         - Pola Cuaca: Suhu dan kelembaban memiliki korelasi signifikan terhadap curah hujan.
         - Rekomendasi Data: Data curah hujan dan cuaca perlu diupdate secara berkala untuk akurasi lebih baik.
-    """)
+        """
+    )
     st.subheader("Decision")
-    st.write("""
+    st.write(
+        """
         - Keputusan: Berdasarkan prediksi curah hujan, disarankan menanam padi pada bulan Desember.
         - Konteks: Wilayah dengan kelembaban di atas 80% dan curah hujan tinggi cocok untuk pertanian basah.
-    """)
+        """
+    )
     st.subheader("Conclusion")
-    st.write("""
+    st.write(
+        """
         - Kesimpulan: Model ARIMA dan CNN mampu memberikan prediksi yang cukup akurat untuk mendukung pengambilan keputusan di sektor pertanian.
         - Tindak Lanjut: Integrasi lebih lanjut dengan data real-time diperlukan untuk meningkatkan keandalan sistem.
-    """)
+        """
+    )
 
 elif menu == "Prediksi Dengan Metode ARIMA":
     st.write("### Prediksi Cuaca Menggunakan Metode ARIMA")
