@@ -14,7 +14,6 @@ from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import joblib
 
-
 # Fungsi untuk memuat data
 @st.cache_data
 def load_data():
